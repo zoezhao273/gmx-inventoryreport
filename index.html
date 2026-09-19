@@ -419,9 +419,8 @@ function renderAsOf(){
   const el=document.getElementById("asof");
   const meta=(state.cloud&&state.cloud.meta)||{};
   const line=(label,d)=>{ const m=meta[d]; return `${label}: <b>${m?fmtWhen(m.uploadedAt):"not uploaded"}</b>`; };
-  const ag=meta.aging&&meta.aging.note ? ` (analysis date ${esc(meta.aging.note)})` : "";
   const stale = meta.soh && (Date.now()-new Date(meta.soh.uploadedAt).getTime() > 36*3600*1000);
-  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}${ag}<br>${line("BOM","bom")}`;
+  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
 }
 
 function renderControls(){
