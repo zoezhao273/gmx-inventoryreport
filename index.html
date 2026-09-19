@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GREE México — Inventory Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+:root{
+  --g-900:#0e3b2e; --g-800:#14503f; --g-700:#1c6a54; --g-100:#e4efea; --g-050:#f2f7f4;
+  --ink:#1f2a26; --ink-2:#4b5853; --ink-3:#8a958f;
+  --paper:#f7f8f7; --line:#d6dcd9; --line-2:#e8ecea;
+  --amber-bg:#fbf1d8; --amber:#a8731a; --rust-bg:#fae4de; --rust:#b1442f;
+  --radius:6px;
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink)}
+body{font-size:13.5px;line-height:1.45}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.num{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+.appbar{background:var(--g-900);color:#fff;padding:16px 24px;border-bottom:3px solid var(--g-700);
+  display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.appbar h1{font-size:17px;font-weight:600;margin:0}
+.appbar .sub{font-size:12px;color:#b9d1c7;margin-top:2px}
+.asof{font-size:11.5px;color:#b9d1c7;text-align:right;line-height:1.5}
+.asof b{color:#fff;font-weight:600}
+.asof .warn{color:#f3c96b}
+
+.shell{max-width:1500px;margin:0 auto;padding:0 20px 60px}
+
+.controls{position:sticky;top:0;z-index:20;background:var(--paper);padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.ctl-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.ctl-row:last-child{margin-bottom:0}
+.ctl-label{font-size:11.5px;color:var(--ink-3);width:92px;flex:none}
+.pill{font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 14px;border-radius:20px;cursor:pointer;
+  background:#fff;color:var(--ink-2);border:1px solid var(--line);transition:background .12s,color .12s}
+.pill:hover{background:var(--g-100)}
+.pill.on{background:var(--g-900);color:#fff;border-color:var(--g-900)}
+.pill:focus-visible{outline:2px solid var(--g-700);outline-offset:2px}
+.pill .cnt{opacity:.65;font-weight:400;margin-left:5px;font-size:11px}
+.search{margin-left:auto;font-family:inherit;font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius);width:240px;background:#fff}
+.search:focus{outline:2px solid var(--g-700);outline-offset:1px}
+button.act{font-family:inherit;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:5px;border:1px solid var(--g-900);background:var(--g-900);color:#fff;cursor:pointer}
+button.act:hover:not(:disabled){background:var(--g-700)}
+button.act:disabled{opacity:.4;cursor:not-allowed}
+button.ghost{background:#fff;color:var(--g-900)}
+button.ghost:hover:not(:disabled){background:var(--g-100)}
+button.small{padding:5px 11px;font-size:11.5px}
+
+.banner{margin-top:12px;padding:9px 12px;border-radius:var(--radius);font-size:12px;border:1px solid var(--line)}
+.banner.info{background:var(--g-100);border-color:#b7d3c6;color:var(--g-900)}
+.banner.warn{background:var(--amber-bg);border-color:#e6c98a;color:#6b4a0e}
+.banner.err{background:var(--rust-bg);border-color:#e9b1a5;color:var(--rust)}
+
+.tablewrap{margin-top:14px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:#fff;max-height:78vh}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);white-space:nowrap}
+th{background:var(--g-900);color:#fff;font-weight:600;text-align:left;position:sticky;top:0;z-index:3}
+th.num{text-align:right}
+th.frozen{position:sticky;z-index:4;background:var(--g-900)}
+td.frozen{position:sticky;z-index:2;background:#fff}
+tr:hover td{background:var(--g-050)}
+tr.pl-head td{background:var(--g-100);color:var(--g-900);font-weight:600;border-top:2px solid var(--g-700)}
+tr.pl-head:hover td{background:var(--g-100)}
+tr.pl-sub td{background:#eef2f0;font-weight:600}
+tr.loose-head td{background:var(--amber-bg);color:#6b4a0e;font-weight:600;font-size:12px}
+tr.loose-head:hover td{background:var(--amber-bg)}
+tr.loose td{background:#fdf8ec}
+tr.loose td.frozen{background:#fdf8ec}
+tr.kit td.sku{cursor:pointer;user-select:none}
+tr.child td{color:var(--ink-2);background:#fafbfa;font-size:12px}
+tr.child td.frozen{background:#fafbfa}
+tr.child td.sku{padding-left:30px}
+tr.filterrow th{position:sticky;z-index:3;background:#eef2f0;padding:4px 6px;border-bottom:1px solid var(--line)}
+tr.filterrow th.frozen{z-index:5}
+tr.filterrow input{width:100%;box-sizing:border-box;font-family:inherit;font-size:11.5px;padding:3px 7px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
+tr.filterrow input:focus{outline:2px solid var(--g-700);outline-offset:0}
+.caret{display:inline-block;width:12px;font-size:9px;color:var(--ink-3);margin-right:4px;transition:transform .12s}
+tr.kit.open .caret{transform:rotate(90deg)}
+.tag{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:9px;margin-left:6px;vertical-align:1px}
+.tag.kit{background:var(--g-100);color:var(--g-800)}
+.tag.loose{background:var(--amber-bg);color:var(--amber)}
+.tag.q{background:#eef2f0;color:var(--ink-2);font-family:'IBM Plex Mono',monospace}
+.zero{color:var(--ink-3)}
+.rowcount{font-size:11.5px;color:var(--ink-3);margin:10px 0 0}
+.emptystate{padding:40px;text-align:center;color:var(--ink-3)}
+
+details.admin{margin-top:28px;border:1px solid var(--line);border-radius:var(--radius);background:#fff}
+details.admin summary{cursor:pointer;padding:12px 16px;font-weight:600;color:var(--g-900);font-size:13px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.admin summary::-webkit-details-marker{display:none}
+details.admin summary .hint{font-weight:400;color:var(--ink-3);font-size:12px}
+.admin-body{padding:4px 16px 16px;border-top:1px solid var(--line-2)}
+.dz-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
+.dz{border:1.5px dashed var(--ink-3);border-radius:var(--radius);padding:12px;background:var(--paper);position:relative}
+.dz:hover{border-color:var(--g-700);background:var(--g-100)}
+.dz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dz .t{font-weight:600;font-size:12.5px;color:var(--g-900)}
+.dz .h{font-size:11.5px;color:var(--ink-2);margin-top:2px}
+.dz .st{font-size:11.5px;margin-top:8px;padding:6px 8px;background:#fff;border:1px solid var(--line);border-radius:4px;min-height:30px}
+.dz .st.ok{border-color:var(--g-700);color:var(--g-800)}
+.dz .st.err{border-color:var(--rust);color:var(--rust)}
+.dz .pub{position:relative;z-index:2;margin-top:8px;display:flex;gap:8px;align-items:center}
+.pinrow{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:12.5px;flex-wrap:wrap}
+.pinrow input{font-family:inherit;font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;width:160px}
+.status{font-size:12px;color:var(--ink-2)}
+.status.err{color:var(--rust)} .status.ok{color:var(--g-800)}
+footer{max-width:1500px;margin:36px auto 16px;padding:0 20px;font-size:11px;color:var(--ink-3)}
+@media (max-width:640px){ .ctl-label{width:100%} .search{width:100%;margin-left:0} .appbar{padding:12px 14px} .shell{padding:0 10px 40px} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <div>
+    <h1>GREE México — Inventory Report</h1>
+    <div class="sub">Stock on Hand (minus reservation), kitted per warehouse by BOM</div>
+  </div>
+  <div class="asof" id="asof">Loading cloud data…</div>
+</div>
+
+<div class="shell">
+
+  <div class="controls" id="controls" style="display:none">
+    <div class="ctl-row">
+      <span class="ctl-label">Product line</span>
+      <span id="pl-pills"></span>
+      <input class="search" id="search" type="search" placeholder="Search code or name…">
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Warehouse</span>
+      <span id="wh-pills"></span>
+      <button class="act ghost small" id="btn-expand" style="margin-left:auto">Expand kits</button>
+      <button class="act ghost small" id="btn-export">Export .xlsx</button>
+    </div>
+  </div>
+
+  <div id="banner"></div>
+  <div id="report"><div class="emptystate">Loading…</div></div>
+
+  <details class="admin" id="admin">
+    <summary><span>Update data</span><span class="hint">Finance only · Stock on Hand and Stock Aging daily, BOM when it changes</span></summary>
+    <div class="admin-body">
+      <div class="pinrow">
+        <label for="pin">Upload PIN</label><input id="pin" type="password" autocomplete="off">
+        <span class="status" id="pin-status">Each file is checked locally first; “Publish” replaces the cloud copy that the sales team sees.</span>
+      </div>
+      <div class="dz-grid">
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="soh">
+          <div class="t">Stock on Hand (Minus Reservation)</div><div class="h">Daily · quantities by warehouse</div>
+          <div class="st" id="st-soh">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="soh" disabled>Publish to cloud</button><span class="status" id="ps-soh"></span></div>
+        </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="aging">
+          <div class="t">Stock Aging Alert Analysis</div><div class="h">Daily · drives which kits get short shared parts</div>
+          <div class="st" id="st-aging">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="aging" disabled>Publish to cloud</button><span class="status" id="ps-aging"></span></div>
+        </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="bom">
+          <div class="t">BOM Checking Report</div><div class="h">Occasional · kit structure</div>
+          <div class="st" id="st-bom">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="bom" disabled>Publish to cloud</button><span class="status" id="ps-bom"></span></div>
+        </div>
+      </div>
+      <div class="pinrow" style="margin-top:14px">
+        <button class="act ghost small" id="btn-preview" disabled>Preview with local files</button>
+        <button class="act ghost small" id="btn-reload">Reload from cloud</button>
+        <span class="status" id="admin-status"></span>
+      </div>
+    </div>
+  </details>
+
+</div>
+
+<footer>GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden</footer>
+
+<!-- ==================== ENGINE ==================== -->
+<script>
+/* ============================================================
+   GREE México Inventory Report — kitting engine
+   Inputs (plain arrays, as stored in the Google Sheet):
+     soh   : {header:[CATECODE,CATENAME,SKUCODE,SKUNAME,<wh...>,TOTAL], rows:[[...]]}
+     aging : [[material, qty, daysExceeded], ...]
+     bom   : [[kit, kitName, sub, subName, qty], ...]
+   Rules (confirmed):
+     • product line = mid(CATECODE,3,3); kit line = line of its main body (kit+"A"),
+       fallback 3rd char of kit code
+     • kitting runs per warehouse, no cross-warehouse pairing
+     • sets = min(sub on hand ÷ BOM qty); two-way loose parts
+     • when a shared sub is short inside a warehouse: main-body aging buckets
+       (FIFO-trimmed to net SOH) are queued OLDEST first, no-record last
+     • loose subs listed under the sub's own product line (shared panels → IST)
+   ============================================================ */
+const InvEngine = (function(){
+
+  const NUM = v => (typeof v==="number" && isFinite(v)) ? v : (Number(v)||0);
+  const PL_RANK = {RAC:1, LAC:2, CAC:3, IST:4, SMP:5, PAT:6};
+  function plOf(cate){ const s=String(cate||""); return s.length>=5 ? s.substring(2,5).toUpperCase() : (s||"OTHER"); }
+  function plOfCode(code){ const c=String(code||"").toUpperCase(); const m={R:"RAC",L:"LAC",C:"CAC",I:"IST",D:"SMP"}; return m[c[2]]||"PAT"; }
+  function whGroup(wh){
+    const w=String(wh).toUpperCase();
+    if(w.startsWith("Z-INTRANSIT")) return "INTRANSIT";
+    if(w.endsWith("-DP")) return "DP";
+    if(w.endsWith("-RE")) return "RE";
+    return "MAIN";
+  }
+
+  function build(soh, aging, bom){
+    /* ---------- SOH ---------- */
+    const H = soh.header.map(h=>String(h||"").trim());
+    const iCate=H.indexOf("CATECODE"), iSku=H.indexOf("SKUCODE"), iName=H.indexOf("SKUNAME");
+    const iTotal=H.indexOf("TOTAL");
+    const whCols=[]; H.forEach((h,i)=>{ if(i>Math.max(iCate,iSku,iName) && i!==iTotal && h && h!=="CATENAME") whCols.push({name:h, idx:i}); });
+    const warehouses = whCols.map(c=>c.name);
+
+    const mat = new Map(); // sku -> {sku,name,cate,pl,qty:{wh:n},total}
+    soh.rows.forEach(r=>{
+      const sku=String(r[iSku]||"").trim(); if(!sku) return;
+      const m={sku, name:String(r[iName]||"").trim(), cate:String(r[iCate]||"").trim(), qty:{}, total:0};
+      m.pl=plOf(m.cate);
+      whCols.forEach(c=>{ const v=NUM(r[c.idx]); m.qty[c.name]=v; m.total+=v; });
+      mat.set(sku,m);
+    });
+
+    /* ---------- BOM ---------- */
+    const kits=new Map(); const subToKits=new Map();
+    bom.forEach(r=>{
+      const kit=String(r[0]||"").trim(), sub=String(r[2]||"").trim(); if(!kit||!sub) return;
+      if(!kits.has(kit)) kits.set(kit,{kit, name:String(r[1]||"").trim(), subs:[]});
+      kits.get(kit).subs.push({sub, name:String(r[3]||"").trim(), q:NUM(r[4])||1});
+      if(!subToKits.has(sub)) subToKits.set(sub,new Set()); subToKits.get(sub).add(kit);
+    });
+    kits.forEach(k=>{
+      const main = k.subs.find(s=>s.sub===k.kit+"A") || k.subs.find(s=>s.sub.startsWith(k.kit)) || k.subs[0];
+      k.main=main.sub;
+      const mm=mat.get(k.main);
+      k.pl = mm ? mm.pl : plOfCode(k.kit);
+    });
+
+    /* ---------- Aging: FIFO-trim to net SOH, keep buckets ---------- */
+    const agingRaw=new Map();
+    aging.forEach(r=>{ const m=String(r[0]||"").trim(); if(!m) return;
+      if(!agingRaw.has(m)) agingRaw.set(m,[]); agingRaw.get(m).push({days:NUM(r[2]), qty:NUM(r[1])}); });
+    const buckets=new Map(); // material -> [{days,qty}] oldest first, trimmed to SOH total
+    agingRaw.forEach((list,m)=>{
+      const mm=mat.get(m); if(!mm) return;
+      let need=mm.total; const keep=[];
+      list.slice().sort((a,b)=>a.days-b.days).forEach(b=>{ // freshest first (FIFO: reserved took the oldest)
+        if(need<=0) return; const t=Math.min(b.qty,need); if(t>0){ keep.push({days:b.days,qty:t}); need-=t; }
+      });
+      keep.sort((a,b)=>b.days-a.days); // allocation order: oldest first
+      buckets.set(m,keep);
+    });
+
+    /* ---------- Kitting per warehouse ---------- */
+    const kitQty=new Map();   // kit -> {wh:n}
+    const loose=new Map();    // sub -> {wh:n}
+    const alloc=new Map();    // kit -> {wh:[{days,qty}]}  (informational)
+    kits.forEach(k=>{ kitQty.set(k.kit,{}); alloc.set(k.kit,{}); });
+
+    warehouses.forEach(wh=>{
+      const rem=new Map(); // sub -> remaining
+      subToKits.forEach((_,sub)=>{ const m=mat.get(sub); rem.set(sub, m?NUM(m.qty[wh]):0); });
+      // queue: every kit's main-body buckets, oldest first; no record → last
+      const queue=[];
+      kits.forEach(k=>{
+        const b=buckets.get(k.main);
+        if(b && b.length) b.forEach(x=>queue.push({kit:k, days:x.days, cap:x.qty}));
+        else queue.push({kit:k, days:-1, cap:Infinity});
+      });
+      queue.sort((a,b)=> (b.days-a.days) || a.kit.kit.localeCompare(b.kit.kit));
+      queue.forEach(e=>{
+        const k=e.kit;
+        let n=e.cap;
+        k.subs.forEach(s=>{ n=Math.min(n, Math.floor(rem.get(s.sub)/s.q)); });
+        if(!(n>0)) return;
+        k.subs.forEach(s=>rem.set(s.sub, rem.get(s.sub)-n*s.q));
+        kitQty.get(k.kit)[wh]=(kitQty.get(k.kit)[wh]||0)+n;
+        (alloc.get(k.kit)[wh]=alloc.get(k.kit)[wh]||[]).push({days:e.days,qty:n});
+      });
+      rem.forEach((v,sub)=>{ if(v>0){ if(!loose.has(sub)) loose.set(sub,{}); loose.get(sub)[wh]=v; } });
+    });
+
+    /* ---------- Reconciliation ---------- */
+    const errors=[];
+    subToKits.forEach((ks,sub)=>{
+      const m=mat.get(sub); if(!m) return;
+      warehouses.forEach(wh=>{
+        let used=0; ks.forEach(kc=>{ const k=kits.get(kc); const q=k.subs.find(s=>s.sub===sub).q; used+=(kitQty.get(kc)[wh]||0)*q; });
+        const lo=(loose.get(sub)||{})[wh]||0;
+        if(Math.abs(used+lo-NUM(m.qty[wh]))>1e-6) errors.push(`${sub} @ ${wh}: kits ${used} + loose ${lo} ≠ SOH ${m.qty[wh]}`);
+      });
+    });
+
+    /* ---------- Rows ---------- */
+    const rows=[]; // {type:'kit'|'item'|'loose', sku, name, pl, qty:{wh}, children?}
+    kits.forEach(k=>{
+      rows.push({type:"kit", sku:k.kit, name:k.name, pl:k.pl, qty:kitQty.get(k.kit),
+        children:k.subs.map(s=>{ const m=mat.get(s.sub); return {sku:s.sub, name:s.name||(m&&m.name)||"", q:s.q, qty:m?m.qty:{}}; })});
+    });
+    mat.forEach(m=>{ if(subToKits.has(m.sku)) return; rows.push({type:"item", sku:m.sku, name:m.name, pl:m.pl, qty:m.qty}); });
+    loose.forEach((q,sub)=>{ const m=mat.get(sub); rows.push({type:"loose", sku:sub, name:m?m.name:"", pl:m?m.pl:plOfCode(sub), qty:q,
+      kitsOf:[...subToKits.get(sub)]}); });
+
+    const productLines=[...new Set(rows.map(r=>r.pl))].sort((a,b)=>(PL_RANK[a]||99)-(PL_RANK[b]||99) || a.localeCompare(b));
+    return {warehouses, whGroup, productLines, rows, errors, kits, mat, alloc,
+      stats:{materials:mat.size, kits:kits.size, sohTotal:[...mat.values()].reduce((s,m)=>s+m.total,0)}};
+  }
+
+  return {build, plOf, whGroup, PL_RANK};
+})();
+
+</script>
+
+<!-- ==================== APP ==================== -->
+<script>
+/* ---------- config ---------- */
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyezDZakn6qgwxT9YkBqlfGLifn1fwS84Rzv5xlQVV02wTTU9oyC2vb7ULaS3KvSUJlVA/exec";
+const WH_GROUPS = [
+  {id:"MAIN", label:"Main WH"}, {id:"DP", label:"DP WH"}, {id:"RE", label:"RE WH"}, {id:"INTRANSIT", label:"Intransit"}
+];
+
+/* ---------- cloud client (new deployment: tabs per dataset, PIN on POST) ---------- */
+async function cloudGet(){
+  if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.startsWith("REPLACE_")) throw new Error("Apps Script URL not configured");
+  const r = await fetch(APPS_SCRIPT_URL+"?dataset=all&_="+Date.now(), {method:"GET"});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const j = await r.json();
+  if(!j.ok) throw new Error(j.error||"cloud error");
+  return j;
+}
+async function cloudPost(dataset, header, rows, meta, pin){
+  // no-cors: response body is opaque; confirm by reading back and comparing row count + fileName
+  await fetch(APPS_SCRIPT_URL, {method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify({pin, dataset, header, rows, meta})});
+  await new Promise(res=>setTimeout(res, 1500));
+  const j = await cloudGet();
+  const m = (j.meta||{})[dataset];
+  const ok = m && String(m.fileName)===String(meta.fileName) && Number(m.rowCount)===rows.length;
+  return {ok, cloud:j};
+}
+
+/* ---------- parsers (local xlsx -> the row shapes the engine and the sheet use) ---------- */
+function readWorkbook(file){
+  return new Promise((resolve,reject)=>{
+    const rd=new FileReader();
+    rd.onload=e=>{ try{ resolve(XLSX.read(e.target.result,{type:"array",cellDates:true})); }catch(err){ reject(err); } };
+    rd.onerror=reject; rd.readAsArrayBuffer(file);
+  });
+}
+const toRows = ws => XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+const S = v => v==null ? "" : String(v).trim();
+
+function parseSOH(wb){
+  const rows=toRows(wb.Sheets[wb.SheetNames[0]]);
+  let hi=-1; for(let i=0;i<Math.min(rows.length,15);i++){ const h=(rows[i]||[]).map(S); if(h.includes("CATECODE")&&h.includes("SKUCODE")) { hi=i; break; } }
+  if(hi<0) throw new Error("header row with CATECODE / SKUCODE not found — is this the Stock on Hand (Minus Reservation) export?");
+  const header=rows[hi].map(S); const last=header.reduce((m,h,i)=>h?i:m,0);
+  const iSku=header.indexOf("SKUCODE");
+  const out=[];
+  for(let r=hi+1;r<rows.length;r++){ const row=rows[r]||[]; if(!S(row[iSku])) continue;
+    out.push(header.slice(0,last+1).map((h,i)=>{ const v=row[i]; return (typeof v==="number")?v:(v==null?"":S(v)); })); }
+  if(!out.length) throw new Error("no data rows under the header");
+  return {header:header.slice(0,last+1), rows:out, note:""};
+}
+function parseAging(wb){
+  const rows=toRows(wb.Sheets[wb.SheetNames[0]]);
+  let hi=-1; for(let i=0;i<Math.min(rows.length,15);i++){ const h=(rows[i]||[]).map(S); if(h.includes("Material Code")&&h.includes("Days Exceeded")) { hi=i; break; } }
+  if(hi<0) throw new Error("header row with Material Code / Days Exceeded not found — is this the Stock Aging Alert Analysis export?");
+  const h=rows[hi].map(S); const iM=h.indexOf("Material Code"), iQ=h.indexOf("Number of Stock Aging Time Periods"), iD=h.indexOf("Days Exceeded");
+  let analysisDate=""; for(let i=0;i<hi;i++){ const r=(rows[i]||[]).map(S); const k=r.indexOf("Stock Aging Analysis Date"); if(k>=0){ const v=rows[i][k+1]; analysisDate = v instanceof Date ? v.toISOString().slice(0,10) : S(v); } }
+  const out=[];
+  for(let r=hi+1;r<rows.length;r++){ const row=rows[r]||[]; if(!S(row[iM])) continue; out.push([S(row[iM]), Number(row[iQ])||0, Number(row[iD])||0]); }
+  if(!out.length) throw new Error("no data rows under the header");
+  return {header:["Material Code","Qty","Days Exceeded"], rows:out, note:analysisDate};
+}
+function parseBOM(wb){
+  const rows=toRows(wb.Sheets[wb.SheetNames[0]]);
+  let hi=-1; for(let i=0;i<Math.min(rows.length,10);i++){ const h=(rows[i]||[]).map(S); if(h.some(x=>x.startsWith("Material Code"))&&h.some(x=>x.startsWith("sub-material"))) { hi=i; break; } }
+  if(hi<0) throw new Error("header row with Material Code / sub-material not found — is this the BOM Checking Report?");
+  const out=[];
+  for(let r=hi+1;r<rows.length;r++){ const row=rows[r]||[]; if(!S(row[1])||!S(row[4])) continue; out.push([S(row[1]),S(row[2]),S(row[4]),S(row[5]),Number(row[6])||1]); }
+  if(!out.length) throw new Error("no kit rows under the header");
+  return {header:["Kit","Kit Name","Sub","Sub Name","Qty"], rows:out, note:""};
+}
+const PARSERS={soh:parseSOH, aging:parseAging, bom:parseBOM};
+
+/* ---------- state ---------- */
+const state={ cloud:null, local:{}, localFiles:{}, result:null, selPL:new Set(["RAC"]), selWH:new Set(["MAIN"]), search:"", previewing:false, openKits:new Set(), colFilter:{code:"",name:""}, _focus:null };
+
+function datasetsInUse(){
+  const src={};
+  ["soh","aging","bom"].forEach(d=>{ src[d]= (state.previewing && state.local[d]) ? state.local[d] : (state.cloud && state.cloud.data && state.cloud.data[d]); });
+  return src;
+}
+function rebuild(){
+  const src=datasetsInUse();
+  if(!src.soh||!src.aging||!src.bom){ state.result=null; renderAsOf(); renderReport(); return; }
+  try{
+    state.result = InvEngine.build({header:src.soh.header, rows:src.soh.rows}, src.aging.rows, src.bom.rows);
+    if(!state.selPL.size || ![...state.selPL].some(p=>state.result.productLines.includes(p))){ state.selPL=new Set([state.result.productLines[0]]); }
+    renderControls(); renderAsOf(); renderReport();
+  }catch(err){ console.error(err); setBanner("err","Could not build the report: "+err.message); }
+}
+
+/* ---------- rendering ---------- */
+function fmt(n){ return n ? Math.round(n).toLocaleString("en-US") : ""; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtWhen(iso){ if(!iso) return "—"; const d=new Date(iso); return isNaN(d)?String(iso):d.toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}); }
+function setBanner(kind,msg){ const b=document.getElementById("banner"); b.innerHTML = msg ? `<div class="banner ${kind}">${msg}</div>` : ""; }
+
+function renderAsOf(){
+  const el=document.getElementById("asof");
+  const meta=(state.cloud&&state.cloud.meta)||{};
+  const line=(label,d)=>{ const m=meta[d]; return `${label}: <b>${m?fmtWhen(m.uploadedAt):"not uploaded"}</b>`; };
+  const ag=meta.aging&&meta.aging.note ? ` (analysis date ${esc(meta.aging.note)})` : "";
+  const stale = meta.soh && (Date.now()-new Date(meta.soh.uploadedAt).getTime() > 36*3600*1000);
+  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}${ag}<br>${line("BOM","bom")}`;
+}
+
+function renderControls(){
+  const r=state.result; if(!r) return;
+  document.getElementById("controls").style.display="";
+  const plEl=document.getElementById("pl-pills");
+  const plAllOn=r.productLines.every(pl=>state.selPL.has(pl));
+  plEl.innerHTML = r.productLines.map(pl=>{
+    const n=r.rows.filter(x=>x.pl===pl && x.type!=="loose" && sumSel(x.qty)>0).length;
+    return `<button class="pill ${state.selPL.has(pl)?"on":""}" data-pl="${pl}">${pl}<span class="cnt">${n}</span></button>`; }).join(" ")
+    + ` <button class="pill ${plAllOn?"on":""}" data-pl="ALL">All</button>`;
+  plEl.querySelectorAll(".pill").forEach(b=>b.onclick=()=>{
+    const p=b.dataset.pl;
+    if(p==="ALL"){ if(plAllOn) state.selPL=new Set([r.productLines[0]]); else r.productLines.forEach(x=>state.selPL.add(x)); }
+    else { if(state.selPL.has(p)){ if(state.selPL.size>1) state.selPL.delete(p); } else state.selPL.add(p); }
+    renderControls(); renderReport(); });
+
+  const whEl=document.getElementById("wh-pills");
+  const present=new Set(r.warehouses.map(w=>r.whGroup(w)));
+  const groups=WH_GROUPS.filter(g=>present.has(g.id));
+  const allOn=groups.every(g=>state.selWH.has(g.id));
+  whEl.innerHTML = groups.map(g=>`<button class="pill ${state.selWH.has(g.id)?"on":""}" data-wh="${g.id}" title="${r.warehouses.filter(w=>r.whGroup(w)===g.id).join(", ")}">${g.label}</button>`).join(" ")
+    + ` <button class="pill ${allOn?"on":""}" data-wh="ALL">All</button>`;
+  whEl.querySelectorAll(".pill").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.wh;
+    if(id==="ALL"){ if(allOn) state.selWH=new Set(["MAIN"]); else groups.forEach(g=>state.selWH.add(g.id)); }
+    else { if(state.selWH.has(id)){ if(state.selWH.size>1) state.selWH.delete(id); } else state.selWH.add(id); }
+    renderControls(); renderReport();
+  });
+}
+function selWarehouses(){ const r=state.result; return r.warehouses.filter(w=>state.selWH.has(r.whGroup(w))); }
+function orderWh(list, allWh){
+  const baseOf=w=>String(w).replace(/-(DP|RE)$/i,"");
+  const rank=w=>/-DP$/i.test(w)?1:(/-RE$/i.test(w)?2:0);
+  const keyIdx=w=>{ const b=baseOf(w); const i=allWh.indexOf(b); return i>=0?i:allWh.indexOf(w); };
+  return list.slice().sort((a,b)=> (keyIdx(a)-keyIdx(b)) || (rank(a)-rank(b)) );
+}
+function sumSel(q){ let s=0; selWarehouses().forEach(w=>s+=q[w]||0); return s; }
+
+function visibleModel(){
+  const r=state.result; const whs=selWarehouses(); const q=state.search.toLowerCase();
+  const fc=state.colFilter.code.toLowerCase(), fn=state.colFilter.name.toLowerCase();
+  const match = x =>
+    (!q || x.sku.toLowerCase().includes(q) || (x.name||"").toLowerCase().includes(q)) &&
+    (!fc || x.sku.toLowerCase().includes(fc)) &&
+    (!fn || (x.name||"").toLowerCase().includes(fn));
+  const groups=[];
+  [...state.selPL].sort((a,b)=>(InvEngine.PL_RANK[a]||99)-(InvEngine.PL_RANK[b]||99)).forEach(pl=>{
+    const main=r.rows.filter(x=>x.pl===pl && x.type!=="loose" && sumSel(x.qty)>0 && match(x)).sort((a,b)=>a.sku.localeCompare(b.sku));
+    const loose=r.rows.filter(x=>x.pl===pl && x.type==="loose" && sumSel(x.qty)>0 && match(x)).sort((a,b)=>a.sku.localeCompare(b.sku));
+    if(main.length||loose.length) groups.push({pl, main, loose});
+  });
+  // hide warehouse columns that are empty for everything shown
+  const used=whs.filter(w=>groups.some(g=>[...g.main,...g.loose].some(x=>(x.qty[w]||0)>0)));
+  return {groups, whs:orderWh(used, r.warehouses)};
+}
+
+function renderReport(){
+  const el=document.getElementById("report");
+  if(!state.result){ el.innerHTML=`<div class="emptystate">No data yet. Once Stock on Hand, Stock Aging and BOM are all in the cloud the report appears here.</div>`; return; }
+  if(state.result.errors.length){ setBanner("err","Reconciliation failed for "+state.result.errors.length+" component/warehouse cells — report not shown. First: "+esc(state.result.errors[0])); el.innerHTML=""; return; }
+  setBanner(state.previewing?"warn":"", state.previewing?"Previewing local files — nothing has been published. The sales team still sees the cloud copy.":"");
+  const vm=visibleModel();
+  const groups=vm.groups;
+  const whs = groups.length ? vm.whs : orderWh(selWarehouses(), state.result.warehouses);
+
+  const W1=140, W2=230;
+  const fz=(left,w)=>`class="frozen" style="left:${left}px;min-width:${w}px"`;
+  const cell=(x,w)=>`<td class="num${x.qty[w]?"":" zero"}">${fmt(x.qty[w])}</td>`;
+  let rows=0;
+  let html=`<div class="tablewrap"><table><thead><tr>
+    <th ${fz(0,W1)}>SKUCODE</th><th ${fz(W1,W2)}>SKUNAME</th>
+    ${whs.map(w=>`<th class="num">${esc(w)}</th>`).join("")}<th class="num">TOTAL</th></tr>
+    <tr class="filterrow">
+      <th class="frozen" style="left:0"><input data-cf="code" type="search" placeholder="filter code…" value="${esc(state.colFilter.code)}"></th>
+      <th class="frozen" style="left:${W1}px"><input data-cf="name" type="search" placeholder="filter name…" value="${esc(state.colFilter.name)}"></th>
+      ${whs.map(()=>`<th></th>`).join("")}<th></th></tr>
+    </thead><tbody>`;
+  const tot=(list,w)=>list.reduce((s,x)=>s+(x.qty[w]||0),0);
+  const line=(x,cls,extra)=>{ rows++;
+    return `<tr class="${cls}" data-sku="${esc(x.sku)}">
+      <td class="frozen sku mono" style="left:0">${extra||""}${esc(x.sku)}</td>
+      <td class="frozen" style="left:${W1}px">${esc(x.name)}${x.type==="kit"?'<span class="tag kit">kit</span>':""}${x.type==="loose"?'<span class="tag loose">loose</span>':""}</td>
+      ${whs.map(w=>cell(x,w)).join("")}<td class="num"><b>${fmt(sumSel(x.qty))}</b></td></tr>`; };
+  groups.forEach(g=>{
+    html+=`<tr class="pl-head"><td class="frozen" style="left:0">${g.pl}</td><td class="frozen" style="left:${W1}px">${g.main.length} materials${g.loose.length?` · ${g.loose.length} loose`:""}</td>
+      ${whs.map(w=>`<td class="num">${fmt(tot(g.main,w))}</td>`).join("")}<td class="num">${fmt(g.main.reduce((s,x)=>s+sumSel(x.qty),0))}</td></tr>`;
+    g.main.forEach(x=>{
+      if(x.type==="kit"){
+        const open=state.openKits.has(x.sku);
+        html+=line(x,"kit"+(open?" open":""),`<span class="caret">&#9654;</span>`);
+        x.children.forEach(c=>{
+          html+=`<tr class="child" data-parent="${esc(x.sku)}" style="${open?"":"display:none"}">
+            <td class="frozen sku mono" style="left:0">${esc(c.sku)}</td>
+            <td class="frozen" style="left:${W1}px">${esc(c.name)}${c.q!==1?`<span class="tag q">×${c.q}</span>`:""}</td>
+            ${whs.map(w=>`<td class="num${c.qty[w]?"":" zero"}">${fmt(c.qty[w])}</td>`).join("")}<td class="num">${fmt(selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0))}</td></tr>`;
+        });
+      } else html+=line(x,"item");
+    });
+    if(g.loose.length){
+      html+=`<tr class="loose-head"><td class="frozen" style="left:0">Loose parts</td><td class="frozen" style="left:${W1}px">on hand but not kittable in that warehouse</td>
+        ${whs.map(w=>`<td class="num">${fmt(tot(g.loose,w))}</td>`).join("")}<td class="num">${fmt(g.loose.reduce((s,x)=>s+sumSel(x.qty),0))}</td></tr>`;
+      g.loose.forEach(x=>html+=line(x,"loose"));
+    }
+  });
+  if(!groups.length){
+    const noMatch = state.colFilter.code || state.colFilter.name || state.search;
+    html+=`<tr><td colspan="${whs.length+3}" class="emptystate" style="border-right:none">${noMatch?"No materials match the current filters.":"Nothing in stock for the selected product lines and warehouses."}</td></tr>`;
+  }
+  html+=`</tbody></table></div><div class="rowcount">${rows.toLocaleString("en-US")} rows${groups.length?` · ${whs.length} of ${selWarehouses().length} selected warehouses have stock in this view`:""}</div>`;
+  el.innerHTML=html;
+
+  // stack the filter row directly beneath the sticky header
+  const h0=el.querySelector("thead tr:first-child");
+  if(h0){ const top=h0.offsetHeight+"px"; el.querySelectorAll("tr.filterrow th").forEach(th=>th.style.top=top); }
+
+  el.querySelectorAll("tr.filterrow input").forEach(inp=>{
+    inp.addEventListener("input",()=>{ state.colFilter[inp.dataset.cf]=inp.value; state._focus=inp.dataset.cf; renderReport(); });
+    inp.addEventListener("focus",()=>{ state._focus=inp.dataset.cf; });
+  });
+  if(state._focus){ const f=el.querySelector(`tr.filterrow input[data-cf="${state._focus}"]`);
+    if(f){ f.focus(); const v=f.value; try{ f.setSelectionRange(v.length,v.length); }catch(_){} } }
+
+  el.querySelectorAll("tr.kit td.sku").forEach(td=>td.onclick=()=>{
+    const tr=td.parentElement, sku=tr.dataset.sku, open=!tr.classList.contains("open");
+    tr.classList.toggle("open",open); if(open) state.openKits.add(sku); else state.openKits.delete(sku);
+    el.querySelectorAll(`tr.child[data-parent="${CSS.escape(sku)}"]`).forEach(c=>c.style.display=open?"":"none");
+  });
+}
+
+document.getElementById("search").addEventListener("input",e=>{ state.search=e.target.value.trim(); renderReport(); });
+document.getElementById("btn-expand").onclick=()=>{
+  const r=state.result; if(!r) return;
+  const kits=r.rows.filter(x=>x.type==="kit").map(x=>x.sku);
+  const anyClosed=kits.some(k=>!state.openKits.has(k));
+  state.openKits = anyClosed ? new Set(kits) : new Set();
+  document.getElementById("btn-expand").textContent = anyClosed ? "Collapse kits" : "Expand kits";
+  renderReport();
+};
+
+/* ---------- export current view ---------- */
+document.getElementById("btn-export").onclick=async()=>{
+  if(!state.result) return;
+  const {groups, whs}=visibleModel();
+  const wb=new ExcelJS.Workbook(); const ws=wb.addWorksheet("Inventory");
+  ws.properties.outlineProperties={summaryBelow:false};
+  const hdr=["Product Line","SKUCODE","SKUNAME","Type",...whs,"TOTAL"];
+  const thin={style:"thin",color:{argb:"FFBFBFBF"}}, border={top:thin,bottom:thin,left:thin,right:thin};
+  hdr.forEach((h,i)=>{ const c=ws.getCell(1,i+1); c.value=h; c.font={name:"Arial",bold:true,color:{argb:"FFFFFFFF"},size:10};
+    c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0E3B2E"}}; c.alignment={horizontal:"center"}; c.border=border; });
+  let r=2;
+  const put=(vals,opt={})=>{ vals.forEach((v,i)=>{ const c=ws.getCell(r,i+1); c.value=v==null?"":v; c.font={name:"Arial",size:9,bold:!!opt.bold,color:opt.grey?{argb:"FF6B7570"}:undefined};
+      c.border=border; if(i>=4) c.numFmt="#,##0"; if(opt.fill) c.fill={type:"pattern",pattern:"solid",fgColor:{argb:opt.fill}}; });
+    if(opt.level) ws.getRow(r).outlineLevel=opt.level; r++; };
+  groups.forEach(g=>{
+    put([g.pl,"","",`${g.main.length} materials`,...whs.map(w=>g.main.reduce((s,x)=>s+(x.qty[w]||0),0)), g.main.reduce((s,x)=>s+sumSel(x.qty),0)],{bold:true,fill:"FFE4EFEA"});
+    g.main.forEach(x=>{
+      put([g.pl,x.sku,x.name,x.type==="kit"?"Kit":"",...whs.map(w=>x.qty[w]||0),sumSel(x.qty)],{bold:x.type==="kit"});
+      if(x.type==="kit") x.children.forEach(c=>put([g.pl,"  "+c.sku,c.name+(c.q!==1?` ×${c.q}`:""),"component",...whs.map(w=>c.qty[w]||0),selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0)],{grey:true,level:1}));
+    });
+    g.loose.forEach(x=>put([g.pl,x.sku,x.name,"Loose",...whs.map(w=>x.qty[w]||0),sumSel(x.qty)],{fill:"FFFDF8EC"}));
+  });
+  ws.columns=[{width:11},{width:14},{width:30},{width:10},...whs.map(()=>({width:11})),{width:10}];
+  ws.views=[{state:"frozen",xSplit:3,ySplit:1}];
+  const meta=(state.cloud&&state.cloud.meta)||{};
+  const notes=wb.addWorksheet("Notes"); notes.getColumn(1).width=110;
+  [["GREE México — Inventory Report (Stock on Hand minus reservation)",true],
+   [`Stock on Hand uploaded ${fmtWhen((meta.soh||{}).uploadedAt)} · Stock Aging analysis date ${(meta.aging||{}).note||"—"} · BOM uploaded ${fmtWhen((meta.bom||{}).uploadedAt)}`,false],
+   [`Product lines: ${[...state.selPL].join(", ")} · Warehouse groups: ${[...state.selWH].join(", ")}`,false],
+   ["",false],
+   ["Sets per kit = min(component on hand ÷ BOM qty) inside each warehouse; TOTAL = sum of sets across the selected warehouses. Components are never paired across warehouses.",false],
+   ["When a shared component is short in a warehouse, kits whose main body is oldest (Stock Aging, FIFO-trimmed to net on hand) are built first; main bodies with no aging record come last.",false],
+   ["Loose parts = on hand but not kittable in that warehouse (two-way: unmatched indoor units as well as outdoor units / panels). Shown under the part's own product line.",false],
+   ["Component rows under a kit show the raw on-hand quantity, not the allocated quantity. Rows and columns with no stock in the selected warehouses are omitted.",false],
+  ].forEach(([t,b],i)=>{ const c=notes.getCell(i+1,1); c.value=t; c.font={name:"Arial",bold:b,size:b?12:10}; c.alignment={wrapText:true}; });
+  const buf=await wb.xlsx.writeBuffer();
+  const url=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+  const a=document.createElement("a"); a.href=url; a.download=`GREE_Mexico_Inventory_${new Date().toISOString().slice(0,10)}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+};
+
+/* ---------- admin: local parse, publish, preview ---------- */
+document.querySelectorAll(".dz input[type=file]").forEach(inp=>inp.addEventListener("change",async e=>{
+  const ds=inp.dataset.ds, f=e.target.files[0]; if(!f) return;
+  const st=document.getElementById("st-"+ds); st.className="st"; st.textContent="Reading "+f.name+"…";
+  try{
+    const wb=await readWorkbook(f); const parsed=PARSERS[ds](wb);
+    parsed.fileName=f.name; state.local[ds]=parsed;
+    st.className="st ok"; st.textContent=`${f.name} — ${parsed.rows.length} rows${parsed.note?` · analysis date ${parsed.note}`:""}`;
+    document.querySelector(`button[data-pub="${ds}"]`).disabled=false;
+  }catch(err){ delete state.local[ds]; st.className="st err"; st.textContent=err.message; document.querySelector(`button[data-pub="${ds}"]`).disabled=true; }
+  document.getElementById("btn-preview").disabled=!Object.keys(state.local).length;
+}));
+
+document.querySelectorAll("button[data-pub]").forEach(btn=>btn.onclick=async()=>{
+  const ds=btn.dataset.pub, p=state.local[ds], ps=document.getElementById("ps-"+ds);
+  const pin=document.getElementById("pin").value;
+  if(!pin){ ps.className="status err"; ps.textContent="Enter the upload PIN first."; return; }
+  btn.disabled=true; ps.className="status"; ps.textContent="Publishing…";
+  try{
+    const {ok, cloud}=await cloudPost(ds, p.header, p.rows, {fileName:p.fileName, note:p.note}, pin);
+    if(ok){ state.cloud=cloud; state.previewing=false; ps.className="status ok"; ps.textContent="Published "+fmtWhen(cloud.meta[ds].uploadedAt); rebuild(); }
+    else { ps.className="status err"; ps.textContent="Cloud copy did not update — wrong PIN, or the Apps Script rejected the file."; btn.disabled=false; }
+  }catch(err){ ps.className="status err"; ps.textContent="Publish failed: "+err.message; btn.disabled=false; }
+});
+
+document.getElementById("btn-preview").onclick=()=>{ state.previewing=true; rebuild(); document.getElementById("admin-status").textContent="Local files are overriding the cloud copy in this window only."; };
+document.getElementById("btn-reload").onclick=()=>loadCloud();
+
+async function loadCloud(){
+  const st=document.getElementById("admin-status"); st.textContent="";
+  document.getElementById("asof").textContent="Loading cloud data…";
+  try{
+    state.cloud=await cloudGet(); state.previewing=false;
+    const d=state.cloud.data||{}; const missing=["soh","aging","bom"].filter(k=>!d[k]||!d[k].rows||!d[k].rows.length);
+    if(missing.length){ setBanner("warn",`Cloud is missing: ${missing.join(", ")}. Upload them under “Update data”.`); document.getElementById("admin").open=true; }
+    rebuild();
+  }catch(err){
+    document.getElementById("asof").textContent="Cloud unavailable";
+    setBanner("err","Could not load cloud data: "+esc(err.message)+". You can still preview with local files under “Update data”.");
+    document.getElementById("admin").open=true; renderReport();
+  }
+}
+loadCloud();
+</script>
+</body>
+</html>
