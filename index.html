@@ -34,7 +34,6 @@ body{font-size:13.5px;line-height:1.45}
 .asof{font-size:11.5px;color:#b9d1c7;text-align:right;line-height:1.5}
 .asof b{color:#fff;font-weight:600}
 .asof .warn{color:#f3c96b}
-.asof .kitdrop{color:#9aa4b2;cursor:help}
 
 .shell{max-width:1500px;margin:0 auto;padding:0 20px 60px}
 
@@ -759,9 +758,7 @@ function renderAsOf(){
   const line=(label,d)=>{ const m=meta[d]; return `${label}: <b>${m?fmtWhen(m.uploadedAt):"not uploaded"}</b>`; };
   const stale = meta.soh && (Date.now()-new Date(meta.soh.uploadedAt).getTime() > 36*3600*1000);
   const rvStale = meta.reserv && (Date.now()-new Date(meta.reserv.uploadedAt).getTime() > 36*3600*1000);
-  const dropped=(state.result&&state.result.kitRowsDropped)||[];
-  const dropNote = dropped.length ? ` <span class="kitdrop" title="${esc(dropped.map(d=>d.sku+" "+d.total).join(" · "))}">— ${dropped.length} kit rows ignored</span>` : "";
-  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}${dropNote}<br>${line("Purchase orders","po")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
+  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Purchase orders","po")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
 }
 
 function renderControls(){
