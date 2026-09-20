@@ -34,6 +34,7 @@ body{font-size:13.5px;line-height:1.45}
 .asof{font-size:11.5px;color:#b9d1c7;text-align:right;line-height:1.5}
 .asof b{color:#fff;font-weight:600}
 .asof .warn{color:#f3c96b}
+.asof .kitdrop{color:#9aa4b2;cursor:help}
 
 .shell{max-width:1500px;margin:0 auto;padding:0 20px 60px}
 
@@ -393,6 +394,14 @@ const InvEngine = (function(){
       k.pl = mm ? mm.pl : plOfCode(k.kit);
     });
 
+    /* ---------- drop kit materials that appear in the SOH export ----------
+       Criterion is the material itself, not its quantity: every SKUCODE listed in
+       column B (Material Code) of the BOM Checking Report is a kit, and a kit's own
+       on-hand line carries no valid quantity whatever its sign. Kit rows are always
+       built from their components, never from the SOH line of the kit code.        */
+    const kitRowsDropped=[];
+    kits.forEach((k,code)=>{ const m=mat.get(code); if(m){ kitRowsDropped.push({sku:code, name:m.name||k.name, total:m.total}); mat.delete(code); } });
+
     /* ---------- Aging: FIFO-trim to net SOH, keep buckets ---------- */
     const agingRaw=new Map();
     aging.forEach(r=>{ const m=String(r[0]||"").trim(); if(!m) return;
@@ -474,7 +483,7 @@ const InvEngine = (function(){
       rows.push({type:"item", sku:code, name:poName.get(code)||"", pl:plOfCode(code), qty:{}, po:per, poOnly:true}); });
 
     const productLines=[...new Set(rows.map(r=>r.pl))].sort((a,b)=>(PL_RANK[a]||99)-(PL_RANK[b]||99) || a.localeCompare(b));
-    return {warehouses, whGroup, productLines, rows, errors, kits, mat, alloc, poOrders,
+    return {warehouses, whGroup, productLines, rows, errors, kits, mat, alloc, poOrders, kitRowsDropped,
       stats:{materials:mat.size, kits:kits.size, sohTotal:[...mat.values()].reduce((s,m)=>s+m.total,0)}};
   }
 
@@ -750,7 +759,9 @@ function renderAsOf(){
   const line=(label,d)=>{ const m=meta[d]; return `${label}: <b>${m?fmtWhen(m.uploadedAt):"not uploaded"}</b>`; };
   const stale = meta.soh && (Date.now()-new Date(meta.soh.uploadedAt).getTime() > 36*3600*1000);
   const rvStale = meta.reserv && (Date.now()-new Date(meta.reserv.uploadedAt).getTime() > 36*3600*1000);
-  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Purchase orders","po")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
+  const dropped=(state.result&&state.result.kitRowsDropped)||[];
+  const dropNote = dropped.length ? ` <span class="kitdrop" title="${esc(dropped.map(d=>d.sku+" "+d.total).join(" · "))}">— ${dropped.length} kit rows ignored</span>` : "";
+  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}${dropNote}<br>${line("Purchase orders","po")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
 }
 
 function renderControls(){
@@ -1238,6 +1249,7 @@ document.getElementById("btn-export").onclick=async()=>{
    ["When a shared component is short in a warehouse, kits whose main body is oldest (Stock Aging, FIFO-trimmed to net on hand) are built first; main bodies with no aging record come last.",false],
    ["Loose parts = on hand but not kittable in that warehouse (two-way: unmatched indoor units as well as outdoor units / panels). Shown under the part's own product line.",false],
    ["Component rows under a kit show the raw on-hand quantity, not the allocated quantity. Rows and columns with no stock in the selected warehouses are omitted.",false],
+   ...((state.result.kitRowsDropped||[]).length?[[`Kit materials appearing in the Stock on Hand export are ignored (${state.result.kitRowsDropped.length} rows: ${state.result.kitRowsDropped.map(d=>d.sku).join(", ")}). Any SKUCODE listed as a kit in the BOM Checking Report is dropped from Stock on Hand regardless of its quantity; kit quantities here are computed from the components.`,false]]:[]),
    ...(pos.length?[
      ["",false],
      ["On order columns = Unreceived Qty of each open purchase order, one column per order, ship-to inside the selected warehouses. Fully received orders are not published.",false],
