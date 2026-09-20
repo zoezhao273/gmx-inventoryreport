@@ -75,6 +75,10 @@ tr.pl-sub td{background:#eef2f0;font-weight:600}
 tr.loose-head td{background:var(--amber-bg);color:#6b4a0e;font-weight:600;font-size:12px}
 tr.loose-head:hover td{background:var(--amber-bg)}
 tr.loose td{background:#fdf8ec}
+tr.loose td.frozen[title]{cursor:help}
+td.nm span.t{display:inline-block;max-width:205px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+td.nm span.t.tagged{max-width:166px}
+tr.pl-head td.cap,tr.loose-head td.cap{font-size:11.5px;line-height:1.35;overflow:hidden}
 tr.loose td.frozen{background:#fdf8ec}
 tr.kit td.sku{cursor:pointer;user-select:none}
 tr.child td{color:var(--ink-2);background:#f8f9fb;font-size:12px}
@@ -158,6 +162,18 @@ tr.rv-child:hover td{background:#f2f5f3}
 td.exp-c{color:var(--rust);font-weight:600}
 td.soon-c{color:var(--amber);font-weight:600}
 
+/* ---------- purchase (on order) columns ---------- */
+th.po{background:var(--hd);vertical-align:top}
+th.po .eta{display:block;font-weight:400;font-size:10px;color:#8fb0a2;margin-top:2px;letter-spacing:.02em}
+th.po .flag{display:inline-block;margin-left:5px;min-width:15px;height:15px;line-height:15px;text-align:center;
+  border-radius:50%;background:var(--amber);color:#fff;font-size:10.5px;font-weight:700;cursor:help}
+td.po{background:#f3f8fc;color:#1b4763}
+th.pofirst,td.pofirst{border-left:2px solid var(--g-700)}
+th.posum{background:#0b2d24}
+td.posum{background:#edf3f0;font-weight:600}
+tr.child td.po{background:#f2f5f9}
+tr.loose td.po{background:#f8f4ec}
+
 @media (max-width:640px){ .ctl-label{width:100%} .search{width:100%;margin-left:0} .appbar{padding:12px 14px} .shell{padding:0 10px 40px} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
 </style>
@@ -192,6 +208,10 @@ td.soon-c{color:var(--amber);font-weight:600}
         <button class="act ghost small" id="btn-expand" style="margin-left:auto">Expand kits</button>
         <button class="act ghost small" id="btn-export">Export .xlsx</button>
       </div>
+      <div class="ctl-row" id="po-row" style="display:none">
+        <span class="ctl-label">On order</span>
+        <span id="po-pills"></span>
+      </div>
     </div>
 
     <div id="reserv-controls" style="display:none">
@@ -218,7 +238,7 @@ td.soon-c{color:var(--amber);font-weight:600}
   <div id="report"><div class="emptystate">Loading…</div></div>
 
   <details class="admin" id="admin">
-    <summary><span>Update data</span><span class="hint">Finance only · Stock on Hand, Stock Aging and Reservation daily, BOM when it changes</span></summary>
+    <summary><span>Update data</span><span class="hint">Finance only · Stock on Hand, Stock Aging and Reservation daily, Purchase Orders weekly, BOM when it changes</span></summary>
     <div class="admin-body">
       <div class="pinrow">
         <label for="pin">Upload PIN</label><input id="pin" type="password" autocomplete="off">
@@ -230,6 +250,16 @@ td.soon-c{color:var(--amber);font-weight:600}
           <div class="st" id="st-soh">Drop or click to choose the .xlsx</div>
           <div class="pub"><button class="act small" data-pub="soh" disabled>Publish to cloud</button><span class="status" id="ps-soh"></span></div>
         </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="po">
+          <div class="t">Purchase Order list</div><div class="h">Weekly · needs the <b>Unreceived Qty</b> column · only open lines and quantities are published — no prices or amounts</div>
+          <div class="st" id="st-po">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="po" disabled>Publish to cloud</button><span class="status" id="ps-po"></span></div>
+        </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="reserv">
+          <div class="t">Lock Stock Reservation Report</div><div class="h">Daily · stock already promised to customers</div>
+          <div class="st" id="st-reserv">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="reserv" disabled>Publish to cloud</button><span class="status" id="ps-reserv"></span></div>
+        </div>
         <div class="dz"><input type="file" accept=".xlsx" data-ds="aging">
           <div class="t">Stock Aging Alert Analysis</div><div class="h">Daily · drives which kits get short shared parts</div>
           <div class="st" id="st-aging">Drop or click to choose the .xlsx</div>
@@ -239,11 +269,6 @@ td.soon-c{color:var(--amber);font-weight:600}
           <div class="t">BOM Checking Report</div><div class="h">Occasional · kit structure</div>
           <div class="st" id="st-bom">Drop or click to choose the .xlsx</div>
           <div class="pub"><button class="act small" data-pub="bom" disabled>Publish to cloud</button><span class="status" id="ps-bom"></span></div>
-        </div>
-        <div class="dz"><input type="file" accept=".xlsx" data-ds="reserv">
-          <div class="t">Lock Stock Reservation Report</div><div class="h">Daily · stock already promised to customers</div>
-          <div class="st" id="st-reserv">Drop or click to choose the .xlsx</div>
-          <div class="pub"><button class="act small" data-pub="reserv" disabled>Publish to cloud</button><span class="status" id="ps-reserv"></span></div>
         </div>
       </div>
       <div class="pinrow" style="margin-top:14px">
@@ -256,7 +281,7 @@ td.soon-c{color:var(--amber);font-weight:600}
 
 </div>
 
-<footer>GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden</footer>
+<footer>GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden · On-order columns show the unreceived qty of each open PO, kitted inside that PO only</footer>
 
 <!-- ==================== ENGINE ==================== -->
 <script>
@@ -289,7 +314,54 @@ const InvEngine = (function(){
     return "MAIN";
   }
 
-  function build(soh, aging, bom){
+  /* ---------- purchase orders: kit the unreceived qty inside each PO ----------
+     one order at a time, no pairing across orders and none with stock.
+     kits are filled biggest-first (most distinct components) so that shared
+     outdoor units / panels leave as few unmatched pieces as possible.        */
+  function buildPurchase(poRows, kits, subToKits){
+    // Google Sheets turns "2026-07-23" into a real date, so it can come back as an ISO timestamp
+    const D = v => { const s=String(v==null?"":v).trim(); const m=s.match(/(\d{4})-(\d{2})-(\d{2})/); return m?`${m[1]}-${m[2]}-${m[3]}`:s; };
+    const orders=new Map();
+    (poRows||[]).forEach(r=>{
+      const no=String(r[0]||"").trim(); if(!no) return;
+      if(!orders.has(no)) orders.set(no,{no, date:D(r[1]), supplier:String(r[2]||""),
+        shipTo:String(r[3]||"").trim(), etd:D(r[4]), eta:D(r[5]), note:String(r[6]||""),
+        qty:new Map(), ordered:new Map(), names:new Map(), sets:{}, leftover:new Map(),
+        unmatched:[], partial:[], lines:0, total:0, orderedTotal:0});
+      const o=orders.get(no); const code=String(r[7]||"").trim(); if(!code) return;
+      const q=NUM(r[9]), tq=NUM(r[10]);
+      if(!o.names.has(code)) o.names.set(code,String(r[8]||"").trim());
+      o.ordered.set(code,(o.ordered.get(code)||0)+tq); o.orderedTotal+=tq; o.lines++;
+      if(!(q>0)) return;                      // line already fully received
+      o.qty.set(code,(o.qty.get(code)||0)+q);
+      o.total+=q;
+    });
+    const list=[...orders.values()];
+    list.forEach(o=>{
+      const rem=new Map(o.qty);
+      const cand=[]; kits.forEach(k=>{ if(k.subs.some(s=>rem.has(s.sub))) cand.push(k); });
+      cand.sort((a,b)=> b.subs.length-a.subs.length || a.kit.localeCompare(b.kit));
+      cand.forEach(k=>{
+        let n=Infinity; k.subs.forEach(s=>{ n=Math.min(n, Math.floor((rem.get(s.sub)||0)/(s.q||1))); });
+        if(n>0 && isFinite(n)){ k.subs.forEach(s=>rem.set(s.sub,(rem.get(s.sub)||0)-n*(s.q||1))); o.sets[k.kit]=n; }
+      });
+      rem.forEach((q,code)=>{ if(q>0) o.leftover.set(code,q); });
+      o.unmatched=[...o.leftover].filter(e=>subToKits.has(e[0]))
+        .map(e=>({sku:e[0], name:o.names.get(e[0])||"", qty:e[1]}))
+        .sort((a,b)=> b.qty-a.qty || a.sku.localeCompare(b.sku));
+      // lines where Unreceived Qty ≠ Total Qty — part of the order is already in stock
+      o.ordered.forEach((tq,code)=>{ const un=o.qty.get(code)||0;
+        if(tq-un>0.0001) o.partial.push({sku:code, name:o.names.get(code)||"", unrec:un, tot:tq}); });
+      o.partial.sort((a,b)=> ((b.tot-b.unrec)-(a.tot-a.unrec)) || a.sku.localeCompare(b.sku));
+      o.received=o.orderedTotal-o.total;
+      o.flag=o.unmatched.length>0 || o.partial.length>0;
+      o.kitSets=Object.keys(o.sets).reduce((t,k)=>t+o.sets[k],0);
+    });
+    list.sort((a,b)=> (a.eta||"9999-99-99").localeCompare(b.eta||"9999-99-99") || a.no.localeCompare(b.no));
+    return list;
+  }
+
+  function build(soh, aging, bom, poRows){
     /* ---------- SOH ---------- */
     const H = soh.header.map(h=>String(h||"").trim());
     const iCate=H.indexOf("CATECODE"), iSku=H.indexOf("SKUCODE"), iName=H.indexOf("SKUNAME");
@@ -376,18 +448,33 @@ const InvEngine = (function(){
       });
     });
 
-    /* ---------- Rows ---------- */
-    const rows=[]; // {type:'kit'|'item'|'loose', sku, name, pl, qty:{wh}, children?}
-    kits.forEach(k=>{
-      rows.push({type:"kit", sku:k.kit, name:k.name, pl:k.pl, qty:kitQty.get(k.kit),
-        children:k.subs.map(s=>{ const m=mat.get(s.sub); return {sku:s.sub, name:s.name||(m&&m.name)||"", q:s.q, qty:m?m.qty:{}}; })});
+    /* ---------- Purchase orders ---------- */
+    const poOrders = buildPurchase(poRows, kits, subToKits);
+    const poKit=new Map(), poRaw=new Map(), poLoose=new Map(), poName=new Map();
+    const addPO=(m,key,no,v)=>{ if(!(v>0)) return; if(!m.has(key)) m.set(key,{}); m.get(key)[no]=(m.get(key)[no]||0)+v; };
+    poOrders.forEach(o=>{
+      Object.keys(o.sets).forEach(k=>addPO(poKit,k,o.no,o.sets[k]));
+      o.qty.forEach((q,c)=>{ addPO(poRaw,c,o.no,q); if(!poName.has(c)) poName.set(c,o.names.get(c)||""); });
+      o.leftover.forEach((q,c)=>{ if(subToKits.has(c)) addPO(poLoose,c,o.no,q); });
     });
-    mat.forEach(m=>{ if(subToKits.has(m.sku)) return; rows.push({type:"item", sku:m.sku, name:m.name, pl:m.pl, qty:m.qty}); });
-    loose.forEach((q,sub)=>{ const m=mat.get(sub); rows.push({type:"loose", sku:sub, name:m?m.name:"", pl:m?m.pl:plOfCode(sub), qty:q,
-      kitsOf:[...subToKits.get(sub)]}); });
+
+    /* ---------- Rows ---------- */
+    const rows=[]; // {type:'kit'|'item'|'loose', sku, name, pl, qty:{wh}, po:{orderNo}, children?}
+    kits.forEach(k=>{
+      rows.push({type:"kit", sku:k.kit, name:k.name, pl:k.pl, qty:kitQty.get(k.kit), po:poKit.get(k.kit)||{},
+        children:k.subs.map(s=>{ const m=mat.get(s.sub); return {sku:s.sub, name:s.name||(m&&m.name)||"", q:s.q, qty:m?m.qty:{}, po:poRaw.get(s.sub)||{}}; })});
+    });
+    mat.forEach(m=>{ if(subToKits.has(m.sku)) return; rows.push({type:"item", sku:m.sku, name:m.name, pl:m.pl, qty:m.qty, po:poRaw.get(m.sku)||{}}); });
+    const looseSubs=new Set([...loose.keys(), ...poLoose.keys()]);
+    looseSubs.forEach(sub=>{ const m=mat.get(sub);
+      rows.push({type:"loose", sku:sub, name:(m?m.name:"")||poName.get(sub)||"", pl:m?m.pl:plOfCode(sub),
+        qty:loose.get(sub)||{}, po:poLoose.get(sub)||{}, kitsOf:[...(subToKits.get(sub)||[])]}); });
+    // materials that only exist on a purchase order (nothing on hand yet)
+    poRaw.forEach((per,code)=>{ if(mat.has(code)||subToKits.has(code)) return;
+      rows.push({type:"item", sku:code, name:poName.get(code)||"", pl:plOfCode(code), qty:{}, po:per, poOnly:true}); });
 
     const productLines=[...new Set(rows.map(r=>r.pl))].sort((a,b)=>(PL_RANK[a]||99)-(PL_RANK[b]||99) || a.localeCompare(b));
-    return {warehouses, whGroup, productLines, rows, errors, kits, mat, alloc,
+    return {warehouses, whGroup, productLines, rows, errors, kits, mat, alloc, poOrders,
       stats:{materials:mat.size, kits:kits.size, sohTotal:[...mat.values()].reduce((s,m)=>s+m.total,0)}};
   }
 
@@ -491,12 +578,58 @@ function parseReserv(wb){
   if(!out.length) throw new Error("no reservation rows under the header");
   return {header:RV_HEADER.slice(), rows:out, note:""};
 }
-const PARSERS={soh:parseSOH, aging:parseAging, bom:parseBOM, reserv:parseReserv};
+/* what is published to the Google Sheet: order identity, dates, ship-to and, per item, the two
+   quantities only (Unreceived Qty + Total Qty). Unit price, amounts, FX rate, currency, tax and
+   payment terms are read for the local checks and then dropped — they never leave the browser. */
+const PO_HEADER=["Order No.","Order Date","Supplier","Ship to","ETD","ETA","Note","Item No.","Item Description","Unreceived Qty","Total Qty"];
+function numQ(v){ if(typeof v==="number") return isFinite(v)?v:0;
+  const n=Number(String(v==null?"":v).replace(/[,\s]/g,"")); return isFinite(n)?n:0; }
+function parsePO(wb){
+  const rows=toRows(wb.Sheets[wb.SheetNames[0]]);
+  const HK=["Order No.","Order Date","Supplier PO No.","Currency","Term of payment","Tax Rate","ETD","ETA"];
+  const orders=[]; let cur=null, mode=null, cols=null, missingUnrec=false;
+  for(let i=0;i<rows.length;i++){
+    const raw=rows[i]||[], t=raw.map(S);
+    if(t.indexOf("Purchase Order")>=0){ cur={hdr:{},items:[],tail:null}; orders.push(cur); mode="hdr"; cols=null; continue; }
+    if(!cur) continue;
+    if(t.indexOf("Item No.")>=0){ cols={}; t.forEach((v,j)=>{ if(v && !(v in cols)) cols[v]=j; });
+      if(!("Unreceived Qty" in cols)) missingUnrec=true;
+      mode="items"; continue; }
+    const iTot=t.indexOf("Total Qty");
+    if(mode==="items" && iTot>=0){ // totals block: merged cells repeat the label, so take the last numeric cell
+      let v=""; for(let k=t.length-1;k>iTot;k--){ if(/^[\d.,]+$/.test(t[k])){ v=t[k]; break; } }
+      cur.tail=v===""?null:numQ(v); mode="tail"; continue; }
+    if(mode==="hdr"){
+      // SheetJS expands merged cells, so a label can repeat down several rows — keep the first value we see
+      t.forEach((v,j)=>{ if(HK.indexOf(v)>=0 && !cur.hdr[v]) cur.hdr[v]=normDate((rows[i+1]||[])[j]); });
+      if(["Supplier","Note","Ship to"].indexOf(t[0])>=0 && t[1] && !cur.hdr[t[0]]) cur.hdr[t[0]]=t[1];
+    } else if(mode==="items" && cols){
+      const code=S(raw[cols["Item No."]]); if(!code) continue;
+      cur.items.push([code, S(raw[cols["Item Description"]]), numQ(raw[cols["Unreceived Qty"]]), numQ(raw[cols["Total Qty"]])]);
+    }
+  }
+  if(!orders.length) throw new Error("no \u201cPurchase Order\u201d block found — is this the Purchase Order list export?");
+  if(missingUnrec) throw new Error("the item table has no \u201cUnreceived Qty\u201d column — re-export the PO list with that column");
+  const out=[]; let open=0; const bad=[];
+  orders.forEach(o=>{
+    const sumTot=o.items.reduce((a,x)=>a+x[3],0), sumUn=o.items.reduce((a,x)=>a+x[2],0);
+    if(o.tail!=null && Math.abs(sumTot-o.tail)>0.5) bad.push(o.hdr["Order No."]||"?");
+    if(!(sumUn>0)) return;            // order fully received — not published at all
+    open++;
+    o.items.forEach(it=>{             // every line of an open order, so partial receipts stay visible
+      out.push([o.hdr["Order No."]||"", o.hdr["Order Date"]||"", o.hdr["Supplier"]||"", o.hdr["Ship to"]||"",
+        o.hdr["ETD"]||"", o.hdr["ETA"]||"", o.hdr["Note"]||"", it[0], it[1], it[2], it[3]]); });
+  });
+  if(!out.length) throw new Error("every order is fully received (Unreceived Qty = 0) — nothing to publish");
+  const note=`${open} open of ${orders.length} orders`+(bad.length?` · line/total qty mismatch: ${bad.join(", ")}`:"");
+  return {header:PO_HEADER.slice(), rows:out, note};
+}
+const PARSERS={soh:parseSOH, aging:parseAging, bom:parseBOM, reserv:parseReserv, po:parsePO};
 
 /* ---------- state ---------- */
-const DATASETS=["soh","aging","bom","reserv"];
+const DATASETS=["soh","aging","bom","reserv","po"];
 const state={ cloud:null, local:{}, localFiles:{}, result:null, rvResult:null,
-  view:"stock", selPL:new Set(["RAC"]), selWH:new Set(["MAIN"]), search:"", previewing:false, openKits:new Set(), colFilter:{code:"",name:""}, _focus:null,
+  view:"stock", selPL:new Set(["RAC"]), selWH:new Set(["MAIN"]), showPO:false, search:"", previewing:false, openKits:new Set(), colFilter:{code:"",name:""}, _focus:null,
   rvSel:{status:new Set(["ALL"]), wh:new Set(["ALL"]), branch:new Set(["ALL"]), sm:"ALL"}, rvSearch:"", rvCol:{code:"",name:"",wh:"",req:"",eta:"",exp:""}, _rvFocus:null, openDocs:new Set(), openKitRows:new Set(), rvOpenInit:false, viewTouched:false };
 
 function datasetsInUse(){
@@ -513,7 +646,7 @@ function rebuild(){
   if(!src.soh||!src.aging||!src.bom){ state.result=null; }
   else{
     try{
-      state.result = InvEngine.build({header:src.soh.header, rows:src.soh.rows}, src.aging.rows, src.bom.rows);
+      state.result = InvEngine.build({header:src.soh.header, rows:src.soh.rows}, src.aging.rows, src.bom.rows, src.po?src.po.rows:null);
       if(!state.selPL.size || ![...state.selPL].some(p=>state.result.productLines.includes(p))){ state.selPL=new Set([state.result.productLines[0]]); }
     }catch(err){ console.error(err); state.result=null; setBanner("err","Could not build the report: "+err.message); }
   }
@@ -617,7 +750,7 @@ function renderAsOf(){
   const line=(label,d)=>{ const m=meta[d]; return `${label}: <b>${m?fmtWhen(m.uploadedAt):"not uploaded"}</b>`; };
   const stale = meta.soh && (Date.now()-new Date(meta.soh.uploadedAt).getTime() > 36*3600*1000);
   const rvStale = meta.reserv && (Date.now()-new Date(meta.reserv.uploadedAt).getTime() > 36*3600*1000);
-  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}`;
+  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Purchase orders","po")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
 }
 
 function renderControls(){
@@ -650,6 +783,19 @@ function renderControls(){
     else { if(state.selWH.has(id)){ if(state.selWH.size>1) state.selWH.delete(id); } else state.selWH.add(id); }
     renderControls(); renderReport();
   });
+
+  renderPOControls();
+}
+
+function renderPOControls(){
+  const r=state.result, row=document.getElementById("po-row");
+  const list=(r&&r.poOrders)||[];
+  if(!list.length){ row.style.display="none"; state.showPO=false; return; }
+  row.style.display="";
+  const sel=poOrdersSel();
+  document.getElementById("po-pills").innerHTML =
+    `<button class="pill ${state.showPO?"on":""}" id="po-toggle">On order (PO)<span class="cnt">${sel.length}</span></button>`;
+  document.getElementById("po-toggle").onclick=()=>{ state.showPO=!state.showPO; renderPOControls(); renderReport(); };
 }
 
 function renderViewTabs(){
@@ -703,6 +849,66 @@ function orderWh(list, allWh){
   return list.slice().sort((a,b)=> (keyIdx(a)-keyIdx(b)) || (rank(a)-rank(b)) );
 }
 function sumSel(q){ let s=0; selWarehouses().forEach(w=>s+=q[w]||0); return s; }
+function poOrdersSel(){
+  const r=state.result; if(!r||!r.poOrders) return [];
+  return r.poOrders.filter(o=>state.selWH.has(r.whGroup(o.shipTo||"")));
+}
+function poOf(x,no){ return (x.po&&x.po[no])||0; }
+function poSum(x,pos){ let s=0; pos.forEach(o=>s+=poOf(x,o.no)); return s; }
+function poDays(etd,eta){   // ETA − ETD + 1, both ends counted
+  const a=/^(\d{4})-(\d{2})-(\d{2})$/.exec(etd||""), b=/^(\d{4})-(\d{2})-(\d{2})$/.exec(eta||"");
+  if(!a||!b) return null;
+  const d=(Date.UTC(+b[1],+b[2]-1,+b[3])-Date.UTC(+a[1],+a[2]-1,+a[3]))/86400000+1;
+  return d>0 ? Math.round(d) : null;
+}
+function poTitle(o){
+  const bits=[];
+  const nd=poDays(o.etd,o.eta);
+  if(o.eta) bits.push(`ETA ${o.eta}`); if(o.etd) bits.push(`ETD ${o.etd}${nd?` (${nd} days)`:""}`);
+  if(o.supplier) bits.push(o.supplier);
+  bits.push(`${Math.round(o.total).toLocaleString("en-US")} of ${Math.round(o.orderedTotal).toLocaleString("en-US")} pcs still to receive`);
+  if(o.note) bits.push(o.note);
+  let t=bits.join("\n");
+  if(o.flag) t+="\n\n"+poFlagTitle(o);   // unmatched components / partial receipt in the same tooltip
+  return t;
+}
+function poFlagTitle(o){
+  const N=n=>Math.round(n).toLocaleString("en-US");
+  const parts=[];
+  if(o.unmatched.length){
+    const list=o.unmatched.slice(0,8).map(u=>`  ${u.sku} ${N(u.qty)}${u.name?" ("+u.name+")":""}`);
+    if(o.unmatched.length>8) list.push(`  …+${o.unmatched.length-8}`);
+    parts.push("含未成套采购物料 / components not purchased as complete sets:\n"+list.join("\n"));
+  }
+  if(o.partial.length){
+    const half=o.partial.filter(u=>u.unrec>0), done=o.partial.filter(u=>!(u.unrec>0));
+    const ordered=[...half,...done];                       // part-received lines first, then completed ones
+    const list=ordered.slice(0,6).map(u=>`  ${u.sku} ${N(u.unrec)} / ${N(u.tot)}`);
+    if(ordered.length>6) list.push(`  …+${ordered.length-6}`);
+    parts.push(`部分到货 / Unreceived Qty ≠ Total Qty\n`
+      +`  ${N(o.received)} of ${N(o.orderedTotal)} pcs already in stock\n`
+      +`  unreceived / ordered:\n`+list.join("\n"));
+  }
+  return parts.join("\n\n");
+}
+/* loose part -> the other components it needs, kit by kit */
+function loosePartners(x){
+  const r=state.result;
+  const ks=(x.kitsOf||[]).slice().sort(); if(!r||!ks.length) return "";
+  const lines=[];
+  ks.slice(0,6).forEach(kc=>{
+    const k=r.kits.get(kc); if(!k) return;
+    lines.push(`${k.kit}  ${k.name}`);
+    k.subs.forEach(su=>{ if(su.sub===x.sku) return; const m=r.mat.get(su.sub);
+      lines.push(`   ${su.sub}  ${su.name||(m&&m.name)||""}${su.q!==1?`  ×${su.q}`:""}`); });
+  });
+  if(ks.length>6) lines.push(`…+${ks.length-6} more kits`);
+  return "配套物料 / pairs with:\n"+lines.join("\n");
+}
+function poHeadLabel(o){
+  const eta=o.eta?("ETA "+o.eta.slice(5)):"ETA —";
+  return eta+(o.shipTo?" · "+o.shipTo:"");
+}
 
 function visibleModel(){
   const r=state.result; const whs=selWarehouses(); const q=state.search.toLowerCase();
@@ -711,15 +917,18 @@ function visibleModel(){
     (!q || x.sku.toLowerCase().includes(q) || (x.name||"").toLowerCase().includes(q)) &&
     (!fc || x.sku.toLowerCase().includes(fc)) &&
     (!fn || (x.name||"").toLowerCase().includes(fn));
+  const pos = state.showPO ? poOrdersSel() : [];
+  const shown = x => sumSel(x.qty)>0 || (pos.length>0 && poSum(x,pos)>0);
   const groups=[];
   [...state.selPL].sort((a,b)=>(InvEngine.PL_RANK[a]||99)-(InvEngine.PL_RANK[b]||99)).forEach(pl=>{
-    const main=r.rows.filter(x=>x.pl===pl && x.type!=="loose" && sumSel(x.qty)>0 && match(x)).sort((a,b)=>a.sku.localeCompare(b.sku));
-    const loose=r.rows.filter(x=>x.pl===pl && x.type==="loose" && sumSel(x.qty)>0 && match(x)).sort((a,b)=>a.sku.localeCompare(b.sku));
+    const main=r.rows.filter(x=>x.pl===pl && x.type!=="loose" && shown(x) && match(x)).sort((a,b)=>a.sku.localeCompare(b.sku));
+    const loose=r.rows.filter(x=>x.pl===pl && x.type==="loose" && shown(x) && match(x)).sort((a,b)=>a.sku.localeCompare(b.sku));
     if(main.length||loose.length) groups.push({pl, main, loose});
   });
-  // hide warehouse columns that are empty for everything shown
+  // hide warehouse / PO columns that are empty for everything shown
   const used=whs.filter(w=>groups.some(g=>[...g.main,...g.loose].some(x=>(x.qty[w]||0)>0)));
-  return {groups, whs:orderWh(used, r.warehouses)};
+  const usedPos=pos.filter(o=>groups.some(g=>[...g.main,...g.loose].some(x=>poOf(x,o.no)>0)));
+  return {groups, whs:orderWh(used, r.warehouses), pos:usedPos};
 }
 
 function renderReport(){
@@ -731,51 +940,65 @@ function renderReport(){
   const vm=visibleModel();
   const groups=vm.groups;
   const whs = groups.length ? vm.whs : orderWh(selWarehouses(), state.result.warehouses);
+  const pos = vm.pos;
 
-  const W1=140, W2=230;
-  const fz=(left,w)=>`class="frozen" style="left:${left}px;min-width:${w}px"`;
+  // fixed widths: SKUCODE fits the longest material code (23 chars, mono),
+  // SKUNAME fits ~30 characters — longer names are clipped with an ellipsis and shown on hover
+  const W1=195, W2=230;
+  const CW=w=>`width:${w}px;min-width:${w}px;max-width:${w}px`;
+  const fz=(left,w)=>`class="frozen" style="left:${left}px;${CW(w)}"`;
+  const nameCell=(name,tagHtml,tip)=>`<td class="frozen nm" style="left:${W1}px;${CW(W2)}"${tip}>`
+    +`<span class="t${tagHtml?" tagged":""}">${esc(name)}</span>${tagHtml}</td>`;
   const cell=(x,w)=>`<td class="num${x.qty[w]?"":" zero"}">${fmt(x.qty[w])}</td>`;
+  const poCells=x=>pos.map((o,i)=>`<td class="num po${i?"":" pofirst"}${poOf(x,o.no)?"":" zero"}">${fmt(poOf(x,o.no))}</td>`).join("")
+    + (pos.length?`<td class="num posum">${fmt(sumSel(x.qty)+poSum(x,pos))}</td>`:"");
+  const poTotCells=list=>pos.map((o,i)=>`<td class="num po${i?"":" pofirst"}">${fmt(list.reduce((s,x)=>s+poOf(x,o.no),0))}</td>`).join("")
+    + (pos.length?`<td class="num posum">${fmt(list.reduce((s,x)=>s+sumSel(x.qty)+poSum(x,pos),0))}</td>`:"");
   let rows=0;
   let html=`<div class="tablewrap"><table><thead><tr>
     <th ${fz(0,W1)}>SKUCODE</th><th ${fz(W1,W2)}>SKUNAME</th>
-    ${whs.map(w=>`<th class="num">${esc(w)}</th>`).join("")}<th class="num">TOTAL</th></tr>
+    ${whs.map(w=>`<th class="num">${esc(w)}</th>`).join("")}<th class="num">TOTAL</th>
+    ${pos.map((o,i)=>`<th class="num po${i?"":" pofirst"}" title="${esc(poTitle(o))}">${esc(o.no)}${o.flag?`<span class="flag">!</span>`:""}<span class="eta">${esc(poHeadLabel(o))}</span></th>`).join("")}
+    ${pos.length?`<th class="num posum" title="TOTAL on hand (already net of reservations) + everything still to receive on the orders shown">TOTAL<br>+ on order</th>`:""}</tr>
     <tr class="filterrow">
-      <th class="frozen" style="left:0"><input data-cf="code" type="search" placeholder="filter code…" value="${esc(state.colFilter.code)}"></th>
-      <th class="frozen" style="left:${W1}px"><input data-cf="name" type="search" placeholder="filter name…" value="${esc(state.colFilter.name)}"></th>
-      ${whs.map(()=>`<th></th>`).join("")}<th></th></tr>
+      <th class="frozen" style="left:0;${CW(W1)}"><input data-cf="code" type="search" placeholder="filter code…" value="${esc(state.colFilter.code)}"></th>
+      <th class="frozen" style="left:${W1}px;${CW(W2)}"><input data-cf="name" type="search" placeholder="filter name…" value="${esc(state.colFilter.name)}"></th>
+      ${whs.map(()=>`<th></th>`).join("")}<th></th>${pos.map(()=>`<th></th>`).join("")}${pos.length?`<th></th>`:""}</tr>
     </thead><tbody>`;
   const tot=(list,w)=>list.reduce((s,x)=>s+(x.qty[w]||0),0);
   const line=(x,cls,extra)=>{ rows++;
+    const tip = x.type==="loose" ? loosePartners(x) : "";
+    const tt = tip ? ` title="${esc(tip)}"` : "";
     return `<tr class="${cls}" data-sku="${esc(x.sku)}">
-      <td class="frozen sku mono" style="left:0">${extra||""}${esc(x.sku)}</td>
-      <td class="frozen" style="left:${W1}px">${esc(x.name)}${x.type==="kit"?'<span class="tag kit">kit</span>':""}${x.type==="loose"?'<span class="tag loose">loose</span>':""}</td>
-      ${whs.map(w=>cell(x,w)).join("")}<td class="num"><b>${fmt(sumSel(x.qty))}</b></td></tr>`; };
+      <td class="frozen sku mono" style="left:0;${CW(W1)}"${tt}>${extra||""}${esc(x.sku)}</td>
+      ${nameCell(x.name, x.type==="kit"?'<span class="tag kit">kit</span>':(x.type==="loose"?'<span class="tag loose">loose</span>':""), tt||` title="${esc(x.name)}"`)}
+      ${whs.map(w=>cell(x,w)).join("")}<td class="num"><b>${fmt(sumSel(x.qty))}</b></td>${poCells(x)}</tr>`; };
   groups.forEach(g=>{
-    html+=`<tr class="pl-head"><td class="frozen" style="left:0">${g.pl}</td><td class="frozen" style="left:${W1}px">${g.main.length} materials${g.loose.length?` · ${g.loose.length} loose`:""}</td>
-      ${whs.map(w=>`<td class="num">${fmt(tot(g.main,w))}</td>`).join("")}<td class="num">${fmt(g.main.reduce((s,x)=>s+sumSel(x.qty),0))}</td></tr>`;
+    html+=`<tr class="pl-head"><td class="frozen" style="left:0;${CW(W1)}">${g.pl}</td><td class="frozen cap" style="left:${W1}px;${CW(W2)}">${g.main.length} materials${g.loose.length?` · ${g.loose.length} loose`:""}</td>
+      ${whs.map(w=>`<td class="num">${fmt(tot(g.main,w))}</td>`).join("")}<td class="num">${fmt(g.main.reduce((s,x)=>s+sumSel(x.qty),0))}</td>${poTotCells(g.main)}</tr>`;
     g.main.forEach(x=>{
       if(x.type==="kit"){
         const open=state.openKits.has(x.sku);
         html+=line(x,"kit"+(open?" open":""),`<span class="caret">&#9654;</span>`);
         x.children.forEach(c=>{
           html+=`<tr class="child" data-parent="${esc(x.sku)}" style="${open?"":"display:none"}">
-            <td class="frozen sku mono" style="left:0">${esc(c.sku)}</td>
-            <td class="frozen" style="left:${W1}px">${esc(c.name)}${c.q!==1?`<span class="tag q">×${c.q}</span>`:""}</td>
-            ${whs.map(w=>`<td class="num${c.qty[w]?"":" zero"}">${fmt(c.qty[w])}</td>`).join("")}<td class="num">${fmt(selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0))}</td></tr>`;
+            <td class="frozen sku mono" style="left:0;${CW(W1)}">${esc(c.sku)}</td>
+            ${nameCell(c.name, c.q!==1?`<span class="tag q">×${c.q}</span>`:"", ` title="${esc(c.name)}"`)}
+            ${whs.map(w=>`<td class="num${c.qty[w]?"":" zero"}">${fmt(c.qty[w])}</td>`).join("")}<td class="num">${fmt(selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0))}</td>${poCells(c)}</tr>`;
         });
       } else html+=line(x,"item");
     });
     if(g.loose.length){
-      html+=`<tr class="loose-head"><td class="frozen" style="left:0">Loose parts</td><td class="frozen" style="left:${W1}px">on hand but not kittable in that warehouse</td>
-        ${whs.map(w=>`<td class="num">${fmt(tot(g.loose,w))}</td>`).join("")}<td class="num">${fmt(g.loose.reduce((s,x)=>s+sumSel(x.qty),0))}</td></tr>`;
+      html+=`<tr class="loose-head"><td class="frozen" style="left:0;${CW(W1)}">Loose parts</td><td class="frozen cap" style="left:${W1}px;${CW(W2)}">on hand but not kittable here${pos.length?"<br>on order: bought unpaired":""}</td>
+        ${whs.map(w=>`<td class="num">${fmt(tot(g.loose,w))}</td>`).join("")}<td class="num">${fmt(g.loose.reduce((s,x)=>s+sumSel(x.qty),0))}</td>${poTotCells(g.loose)}</tr>`;
       g.loose.forEach(x=>html+=line(x,"loose"));
     }
   });
   if(!groups.length){
     const noMatch = state.colFilter.code || state.colFilter.name || state.search;
-    html+=`<tr><td colspan="${whs.length+3}" class="emptystate" style="border-right:none">${noMatch?"No materials match the current filters.":"Nothing in stock for the selected product lines and warehouses."}</td></tr>`;
+    html+=`<tr><td colspan="${whs.length+3+pos.length+(pos.length?1:0)}" class="emptystate" style="border-right:none">${noMatch?"No materials match the current filters.":"Nothing in stock for the selected product lines and warehouses."}</td></tr>`;
   }
-  html+=`</tbody></table></div><div class="rowcount">${rows.toLocaleString("en-US")} rows${groups.length?` · ${whs.length} of ${selWarehouses().length} selected warehouses have stock in this view`:""}</div>`;
+  html+=`</tbody></table></div><div class="rowcount">${rows.toLocaleString("en-US")} rows${groups.length?` · ${whs.length} of ${selWarehouses().length} selected warehouses have stock in this view`:""}${pos.length?` · ${pos.length} open purchase order${pos.length===1?"":"s"} (unreceived qty, kitted within each order)`:""}</div>`;
   el.innerHTML=html;
 
   // stack the filter row directly beneath the sticky header
@@ -980,10 +1203,13 @@ document.getElementById("btn-expand").onclick=()=>{
 /* ---------- export current view ---------- */
 document.getElementById("btn-export").onclick=async()=>{
   if(!state.result) return;
-  const {groups, whs}=visibleModel();
+  const {groups, whs, pos}=visibleModel();
   const wb=new ExcelJS.Workbook(); const ws=wb.addWorksheet("Inventory");
   ws.properties.outlineProperties={summaryBelow:false};
-  const hdr=["Product Line","SKUCODE","SKUNAME","Type",...whs,"TOTAL"];
+  const poV=x=>pos.length?[...pos.map(o=>poOf(x,o.no)), sumSel(x.qty)+poSum(x,pos)]:[];
+  const poT=list=>pos.length?[...pos.map(o=>list.reduce((s,x)=>s+poOf(x,o.no),0)), list.reduce((s,x)=>s+sumSel(x.qty)+poSum(x,pos),0)]:[];
+  const hdr=["Product Line","SKUCODE","SKUNAME","Type",...whs,"TOTAL",
+    ...(pos.length?[...pos.map(o=>o.no+(o.flag?"  !":"")), "TOTAL + on order"]:[])];
   const thin={style:"thin",color:{argb:"FFBFBFBF"}}, border={top:thin,bottom:thin,left:thin,right:thin};
   hdr.forEach((h,i)=>{ const c=ws.getCell(1,i+1); c.value=h; c.font={name:"Arial",bold:true,color:{argb:"FFFFFFFF"},size:10};
     c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0E3B2E"}}; c.alignment={horizontal:"center"}; c.border=border; });
@@ -992,14 +1218,15 @@ document.getElementById("btn-export").onclick=async()=>{
       c.border=border; if(i>=4) c.numFmt="#,##0"; if(opt.fill) c.fill={type:"pattern",pattern:"solid",fgColor:{argb:opt.fill}}; });
     if(opt.level) ws.getRow(r).outlineLevel=opt.level; r++; };
   groups.forEach(g=>{
-    put([g.pl,"","",`${g.main.length} materials`,...whs.map(w=>g.main.reduce((s,x)=>s+(x.qty[w]||0),0)), g.main.reduce((s,x)=>s+sumSel(x.qty),0)],{bold:true,fill:"FFE4EFEA"});
+    put([g.pl,"","",`${g.main.length} materials`,...whs.map(w=>g.main.reduce((s,x)=>s+(x.qty[w]||0),0)), g.main.reduce((s,x)=>s+sumSel(x.qty),0), ...poT(g.main)],{bold:true,fill:"FFE4EFEA"});
     g.main.forEach(x=>{
-      put([g.pl,x.sku,x.name,x.type==="kit"?"Kit":"",...whs.map(w=>x.qty[w]||0),sumSel(x.qty)],{bold:x.type==="kit"});
-      if(x.type==="kit") x.children.forEach(c=>put([g.pl,"  "+c.sku,c.name+(c.q!==1?` ×${c.q}`:""),"component",...whs.map(w=>c.qty[w]||0),selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0)],{grey:true,level:1}));
+      put([g.pl,x.sku,x.name,x.type==="kit"?"Kit":"",...whs.map(w=>x.qty[w]||0),sumSel(x.qty),...poV(x)],{bold:x.type==="kit"});
+      if(x.type==="kit") x.children.forEach(c=>put([g.pl,"  "+c.sku,c.name+(c.q!==1?` ×${c.q}`:""),"component",...whs.map(w=>c.qty[w]||0),selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0),...poV(c)],{grey:true,level:1}));
     });
-    g.loose.forEach(x=>put([g.pl,x.sku,x.name,"Loose",...whs.map(w=>x.qty[w]||0),sumSel(x.qty)],{fill:"FFFDF8EC"}));
+    g.loose.forEach(x=>put([g.pl,x.sku,x.name,"Loose",...whs.map(w=>x.qty[w]||0),sumSel(x.qty),...poV(x)],{fill:"FFFDF8EC"}));
   });
-  ws.columns=[{width:11},{width:14},{width:30},{width:10},...whs.map(()=>({width:11})),{width:10}];
+  ws.columns=[{width:11},{width:14},{width:30},{width:10},...whs.map(()=>({width:11})),{width:10},
+    ...(pos.length?[...pos.map(()=>({width:18})),{width:14}]:[])];
   ws.views=[{state:"frozen",xSplit:3,ySplit:1}];
   const meta=(state.cloud&&state.cloud.meta)||{};
   const notes=wb.addWorksheet("Notes"); notes.getColumn(1).width=110;
@@ -1011,6 +1238,17 @@ document.getElementById("btn-export").onclick=async()=>{
    ["When a shared component is short in a warehouse, kits whose main body is oldest (Stock Aging, FIFO-trimmed to net on hand) are built first; main bodies with no aging record come last.",false],
    ["Loose parts = on hand but not kittable in that warehouse (two-way: unmatched indoor units as well as outdoor units / panels). Shown under the part's own product line.",false],
    ["Component rows under a kit show the raw on-hand quantity, not the allocated quantity. Rows and columns with no stock in the selected warehouses are omitted.",false],
+   ...(pos.length?[
+     ["",false],
+     ["On order columns = Unreceived Qty of each open purchase order, one column per order, ship-to inside the selected warehouses. Fully received orders are not published.",false],
+     ["Each order is kitted on its own: sets = min(component unreceived qty ÷ BOM qty) within that order only — never paired with stock or with another order. Kit rows show sets, component rows show the purchased pieces, loose rows show pieces bought without their partner.",false],
+     ["A \u201c!\u201d after the order number means components were not purchased as complete sets and/or part of the order is already received: "
+       +(pos.filter(o=>o.flag).map(o=>{ const b=[];
+           if(o.unmatched.length) b.push("unmatched "+o.unmatched.map(u=>u.sku+" "+Math.round(u.qty)).join(", "));
+           if(o.partial.length) b.push("partly received, "+o.partial.length+" of "+o.lines+" lines");
+           return o.no+" ("+b.join("; ")+")"; }).join(" · ")||"none"),false],
+     ["TOTAL + on order = TOTAL (on hand, already net of reservations) + the on-order columns shown here.",false],
+   ]:[]),
   ].forEach(([t,b],i)=>{ const c=notes.getCell(i+1,1); c.value=t; c.font={name:"Arial",bold:b,size:b?12:10}; c.alignment={wrapText:true}; });
   const buf=await wb.xlsx.writeBuffer();
   const url=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
