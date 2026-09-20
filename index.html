@@ -12,6 +12,7 @@
 <style>
 :root{
   --g-900:#0e3b2e; --g-800:#14503f; --g-700:#1c6a54; --g-100:#e4efea; --g-050:#f2f7f4;
+  --hd:#123329;
   --ink:#1f2a26; --ink-2:#4b5853; --ink-3:#8a958f;
   --paper:#f7f8f7; --line:#d6dcd9; --line-2:#e8ecea;
   --amber-bg:#fbf1d8; --amber:#a8731a; --rust-bg:#fae4de; --rust:#b1442f;
@@ -24,10 +25,12 @@ body{font-size:13.5px;line-height:1.45}
 .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
 .num{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 
-.appbar{background:var(--g-900);color:#fff;padding:16px 24px;border-bottom:3px solid var(--g-700);
+.appbar{background:var(--hd);color:#fff;padding:16px 24px;border-bottom:3px solid var(--g-700);
   display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
-.appbar h1{font-size:17px;font-weight:600;margin:0}
-.appbar .sub{font-size:12px;color:#b9d1c7;margin-top:2px}
+.appbar .brand{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;line-height:1.15}
+.appbar .eyebrow{font-size:11px;letter-spacing:.16em;font-weight:600;text-transform:uppercase;color:#8fb0a2;margin-bottom:3px}
+.appbar h1{font-size:17px;font-weight:700;letter-spacing:-.01em;margin:0}
+.appbar .sub{font-size:12px;color:#b9d1c7;margin-top:3px}
 .asof{font-size:11.5px;color:#b9d1c7;text-align:right;line-height:1.5}
 .asof b{color:#fff;font-weight:600}
 .asof .warn{color:#f3c96b}
@@ -61,9 +64,9 @@ button.small{padding:5px 11px;font-size:11.5px}
 .tablewrap{margin-top:14px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:#fff;max-height:78vh}
 table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
 th,td{padding:6px 10px;border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);white-space:nowrap}
-th{background:var(--g-900);color:#fff;font-weight:600;text-align:left;position:sticky;top:0;z-index:3}
+th{background:var(--hd);color:#fff;font-weight:600;text-align:left;position:sticky;top:0;z-index:3}
 th.num{text-align:right}
-th.frozen{position:sticky;z-index:4;background:var(--g-900)}
+th.frozen{position:sticky;z-index:4;background:var(--hd)}
 td.frozen{position:sticky;z-index:2;background:#fff}
 tr:hover td{background:var(--g-050)}
 tr.pl-head td{background:var(--g-100);color:var(--g-900);font-weight:600;border-top:2px solid var(--g-700)}
@@ -74,8 +77,8 @@ tr.loose-head:hover td{background:var(--amber-bg)}
 tr.loose td{background:#fdf8ec}
 tr.loose td.frozen{background:#fdf8ec}
 tr.kit td.sku{cursor:pointer;user-select:none}
-tr.child td{color:var(--ink-2);background:#fafbfa;font-size:12px}
-tr.child td.frozen{background:#fafbfa}
+tr.child td{color:var(--ink-2);background:#f8f9fb;font-size:12px}
+tr.child td.frozen{background:#f8f9fb}
 tr.child td.sku{padding-left:30px}
 tr.filterrow th{position:sticky;z-index:3;background:#eef2f0;padding:4px 6px;border-bottom:1px solid var(--line)}
 tr.filterrow th.frozen{z-index:5}
@@ -111,6 +114,50 @@ details.admin summary .hint{font-weight:400;color:var(--ink-3);font-size:12px}
 .status{font-size:12px;color:var(--ink-2)}
 .status.err{color:var(--rust)} .status.ok{color:var(--g-800)}
 footer{max-width:1500px;margin:36px auto 16px;padding:0 20px;font-size:11px;color:var(--ink-3)}
+
+/* ---------- view switch ---------- */
+.viewtabs{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--line);border-radius:20px;overflow:hidden;width:max-content;background:#fff}
+.viewtabs button{font-family:inherit;font-size:12.5px;font-weight:600;padding:6px 18px;border:none;background:#fff;color:var(--ink-2);cursor:pointer}
+.viewtabs button:hover{background:var(--g-050)}
+.viewtabs button.on{background:var(--g-900);color:#fff}
+.viewtabs button .b{display:inline-block;min-width:16px;margin-left:6px;padding:0 6px;font-size:10.5px;font-weight:600;border-radius:9px;background:var(--rust);color:#fff;vertical-align:1px}
+.viewtabs button.on .b{background:#fff;color:var(--rust)}
+
+/* ---------- reservation KPI cards ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px}
+.kpi .l{font-size:11.5px;color:var(--ink-3)}
+.kpi .v{font-size:23px;font-weight:600;line-height:1.2;margin-top:2px}
+.kpi .v .u{font-size:12px;font-weight:400;color:var(--ink-3);margin-left:4px}
+.kpi .s{font-size:11px;color:var(--ink-3);margin-top:1px}
+.kpi.exp{background:var(--rust-bg);border-color:#e9b1a5}
+.kpi.exp .l,.kpi.exp .v,.kpi.exp .s{color:var(--rust)}
+.kpi.soon{background:var(--amber-bg);border-color:#e6c98a}
+.kpi.soon .l,.kpi.soon .v,.kpi.soon .s{color:#6b4a0e}
+
+/* ---------- reservation table ---------- */
+tr.rv-head td{background:var(--g-100);color:var(--g-900);font-weight:600;border-top:2px solid var(--g-700);cursor:pointer;user-select:none}
+tr.rv-head:hover td{filter:brightness(.98)}
+tr.rv-head.exp td{background:var(--rust-bg);color:var(--rust);border-top-color:var(--rust)}
+tr.rv-head.soon td{background:var(--amber-bg);color:#6b4a0e;border-top-color:var(--amber)}
+tr.rv-head .doc{font-family:'IBM Plex Mono',monospace;font-weight:600}
+tr.rv-head .meta{font-weight:400;font-size:11.5px;opacity:.85;margin-left:2px}
+tr.rv-line td{font-size:12px}
+tr.rv-line td.sku{padding-left:26px}
+tr.rv-line:hover td{background:var(--g-050)}
+tr.rv-kit{cursor:pointer}
+tr.rv-kit td.sku{padding-left:20px}
+tr.rv-child td{background:#fafbfa;color:var(--ink-2);font-size:11.5px}
+tr.rv-child:hover td{background:#f2f5f3}
+.tag.miss{background:var(--rust);color:#fff;font-weight:600}
+.rvbadge{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:9px;white-space:nowrap}
+.rvbadge.exp{background:var(--rust);color:#fff}
+.rvbadge.soon{background:var(--amber);color:#fff}
+.rvbadge.today{background:var(--amber);color:#fff}
+.rvbadge.ok{background:var(--g-100);color:var(--g-800);border:1px solid #b7d3c6}
+td.exp-c{color:var(--rust);font-weight:600}
+td.soon-c{color:var(--amber);font-weight:600}
+
 @media (max-width:640px){ .ctl-label{width:100%} .search{width:100%;margin-left:0} .appbar{padding:12px 14px} .shell{padding:0 10px 40px} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
 </style>
@@ -118,8 +165,9 @@ footer{max-width:1500px;margin:36px auto 16px;padding:0 20px;font-size:11px;colo
 <body>
 
 <div class="appbar">
-  <div>
-    <h1>GREE México — Inventory Report</h1>
+  <div class="brand">
+    <div class="eyebrow">GREE MÉXICO</div>
+    <h1>Inventory Report</h1>
     <div class="sub">Stock on Hand (minus reservation), kitted per warehouse by BOM</div>
   </div>
   <div class="asof" id="asof">Loading cloud data…</div>
@@ -128,16 +176,41 @@ footer{max-width:1500px;margin:36px auto 16px;padding:0 20px;font-size:11px;colo
 <div class="shell">
 
   <div class="controls" id="controls" style="display:none">
-    <div class="ctl-row">
-      <span class="ctl-label">Product line</span>
-      <span id="pl-pills"></span>
-      <input class="search" id="search" type="search" placeholder="Search code or name…">
+    <div class="viewtabs" id="view-tabs">
+      <button data-view="stock" class="on">Available stock</button>
+      <button data-view="reserv">Reservations<span class="b" id="rv-tab-badge" style="display:none"></span></button>
     </div>
-    <div class="ctl-row">
-      <span class="ctl-label">Warehouse</span>
-      <span id="wh-pills"></span>
-      <button class="act ghost small" id="btn-expand" style="margin-left:auto">Expand kits</button>
-      <button class="act ghost small" id="btn-export">Export .xlsx</button>
+
+    <div id="stock-controls">
+      <div class="ctl-row">
+        <span class="ctl-label">Product line</span>
+        <span id="pl-pills"></span>
+      </div>
+      <div class="ctl-row">
+        <span class="ctl-label">Warehouse</span>
+        <span id="wh-pills"></span>
+        <button class="act ghost small" id="btn-expand" style="margin-left:auto">Expand kits</button>
+        <button class="act ghost small" id="btn-export">Export .xlsx</button>
+      </div>
+    </div>
+
+    <div id="reserv-controls" style="display:none">
+      <div class="ctl-row">
+        <span class="ctl-label">Status</span>
+        <span id="rv-status-pills"></span>
+      </div>
+      <div class="ctl-row">
+        <span class="ctl-label">Warehouse</span>
+        <span id="rv-wh-pills"></span>
+        <button class="act ghost small" id="rv-expand" style="margin-left:auto">Expand all</button>
+        <button class="act ghost small" id="rv-export">Export .xlsx</button>
+      </div>
+      <div class="ctl-row">
+        <span class="ctl-label">Branch</span>
+        <span id="rv-branch-pills"></span>
+        <span class="ctl-label" style="width:auto;margin-left:10px">Salesman</span>
+        <select id="rv-salesman" class="search" style="margin-left:0;width:auto;min-width:180px"></select>
+      </div>
     </div>
   </div>
 
@@ -145,7 +218,7 @@ footer{max-width:1500px;margin:36px auto 16px;padding:0 20px;font-size:11px;colo
   <div id="report"><div class="emptystate">Loading…</div></div>
 
   <details class="admin" id="admin">
-    <summary><span>Update data</span><span class="hint">Finance only · Stock on Hand and Stock Aging daily, BOM when it changes</span></summary>
+    <summary><span>Update data</span><span class="hint">Finance only · Stock on Hand, Stock Aging and Reservation daily, BOM when it changes</span></summary>
     <div class="admin-body">
       <div class="pinrow">
         <label for="pin">Upload PIN</label><input id="pin" type="password" autocomplete="off">
@@ -166,6 +239,11 @@ footer{max-width:1500px;margin:36px auto 16px;padding:0 20px;font-size:11px;colo
           <div class="t">BOM Checking Report</div><div class="h">Occasional · kit structure</div>
           <div class="st" id="st-bom">Drop or click to choose the .xlsx</div>
           <div class="pub"><button class="act small" data-pub="bom" disabled>Publish to cloud</button><span class="status" id="ps-bom"></span></div>
+        </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="reserv">
+          <div class="t">Lock Stock Reservation Report</div><div class="h">Daily · stock already promised to customers</div>
+          <div class="st" id="st-reserv">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="reserv" disabled>Publish to cloud</button><span class="status" id="ps-reserv"></span></div>
         </div>
       </div>
       <div class="pinrow" style="margin-top:14px">
@@ -389,24 +467,142 @@ function parseBOM(wb){
   if(!out.length) throw new Error("no kit rows under the header");
   return {header:["Kit","Kit Name","Sub","Sub Name","Qty"], rows:out, note:""};
 }
-const PARSERS={soh:parseSOH, aging:parseAging, bom:parseBOM};
+const RV_HEADER=["Demand Doc No.","Line No.","SKUCODE","SKUNAME","Reserved Qty","Customer Name","Date Required","Estimated Delivery Date","Branch","Sales Man","Warehouse"];
+function normDate(v){
+  if(v==null||v==="") return "";
+  if(v instanceof Date && !isNaN(v)){ const p=n=>String(n).padStart(2,"0"); return `${v.getFullYear()}-${p(v.getMonth()+1)}-${p(v.getDate())}`; }
+  const s=String(v).trim(); const m=s.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if(m){ const p=n=>String(n).padStart(2,"0"); return `${m[1]}-${p(m[2])}-${p(m[3])}`; }
+  return s;
+}
+function parseReserv(wb){
+  const rows=toRows(wb.Sheets[wb.SheetNames[0]]);
+  let hi=-1; for(let i=0;i<Math.min(rows.length,15);i++){ const h=(rows[i]||[]).map(S); if(h.includes("Demand Doc No.")&&h.includes("Reserved Qty")&&h.includes("SKUCODE")) { hi=i; break; } }
+  if(hi<0) throw new Error("header row with Demand Doc No. / SKUCODE / Reserved Qty not found — is this the Lock Stock Reservation Report?");
+  const h=rows[hi].map(S);
+  const col=name=>h.indexOf(name);
+  const need={demand:col("Demand Doc No."), line:col("Line No."), sku:col("SKUCODE"), name:col("SKUNAME"), qty:col("Reserved Qty"),
+    cust:col("Customer Name"), req:col("Date Required"), eta:col("Estimated Delivery Date"), branch:col("Branch"), sm:col("Sales Man"), wh:col("Warehouse")};
+  const out=[];
+  for(let r=hi+1;r<rows.length;r++){ const row=rows[r]||[]; if(!S(row[need.sku])||!S(row[need.demand])) continue;
+    out.push([ S(row[need.demand]), Number(row[need.line])||0, S(row[need.sku]), S(row[need.name]),
+      Number(row[need.qty])||0, S(row[need.cust]), normDate(row[need.req]), normDate(row[need.eta]),
+      S(row[need.branch]), S(row[need.sm]), S(row[need.wh]) ]); }
+  if(!out.length) throw new Error("no reservation rows under the header");
+  return {header:RV_HEADER.slice(), rows:out, note:""};
+}
+const PARSERS={soh:parseSOH, aging:parseAging, bom:parseBOM, reserv:parseReserv};
 
 /* ---------- state ---------- */
-const state={ cloud:null, local:{}, localFiles:{}, result:null, selPL:new Set(["RAC"]), selWH:new Set(["MAIN"]), search:"", previewing:false, openKits:new Set(), colFilter:{code:"",name:""}, _focus:null };
+const DATASETS=["soh","aging","bom","reserv"];
+const state={ cloud:null, local:{}, localFiles:{}, result:null, rvResult:null,
+  view:"stock", selPL:new Set(["RAC"]), selWH:new Set(["MAIN"]), search:"", previewing:false, openKits:new Set(), colFilter:{code:"",name:""}, _focus:null,
+  rvSel:{status:new Set(["ALL"]), wh:new Set(["ALL"]), branch:new Set(["ALL"]), sm:"ALL"}, rvSearch:"", rvCol:{code:"",name:"",wh:"",req:"",eta:"",exp:""}, _rvFocus:null, openDocs:new Set(), openKitRows:new Set(), rvOpenInit:false, viewTouched:false };
 
 function datasetsInUse(){
   const src={};
-  ["soh","aging","bom"].forEach(d=>{ src[d]= (state.previewing && state.local[d]) ? state.local[d] : (state.cloud && state.cloud.data && state.cloud.data[d]); });
+  DATASETS.forEach(d=>{ src[d]= (state.previewing && state.local[d]) ? state.local[d] : (state.cloud && state.cloud.data && state.cloud.data[d]); });
   return src;
 }
 function rebuild(){
   const src=datasetsInUse();
-  if(!src.soh||!src.aging||!src.bom){ state.result=null; renderAsOf(); renderReport(); return; }
-  try{
-    state.result = InvEngine.build({header:src.soh.header, rows:src.soh.rows}, src.aging.rows, src.bom.rows);
-    if(!state.selPL.size || ![...state.selPL].some(p=>state.result.productLines.includes(p))){ state.selPL=new Set([state.result.productLines[0]]); }
-    renderControls(); renderAsOf(); renderReport();
-  }catch(err){ console.error(err); setBanner("err","Could not build the report: "+err.message); }
+  // reservations are independent of soh/aging/bom, but use BOM for kitting when present
+  try{ state.rvResult = src.reserv ? buildReservations(src.reserv, src.bom) : null; }
+  catch(err){ console.error(err); state.rvResult=null; }
+  if(state.rvResult && !state.rvOpenInit){ state.openDocs=new Set(state.rvResult.groups.filter(g=>g.daysLeft<=0).map(g=>g.doc)); state.rvOpenInit=true; }
+  if(!src.soh||!src.aging||!src.bom){ state.result=null; }
+  else{
+    try{
+      state.result = InvEngine.build({header:src.soh.header, rows:src.soh.rows}, src.aging.rows, src.bom.rows);
+      if(!state.selPL.size || ![...state.selPL].some(p=>state.result.productLines.includes(p))){ state.selPL=new Set([state.result.productLines[0]]); }
+    }catch(err){ console.error(err); state.result=null; setBanner("err","Could not build the report: "+err.message); }
+  }
+  if(!state.viewTouched){ state.view = (!state.result && state.rvResult) ? "reserv" : "stock"; }
+  renderControls(); renderAsOf(); renderReport();
+}
+
+/* ---------- reservations model ---------- */
+function daysUntil(iso, today){ if(!iso) return null; const m=iso.match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return null;
+  const d=Date.UTC(+m[1],+m[2]-1,+m[3]); return Math.round((d-today)/86400000); }
+function addDays(iso, n){ const m=iso&&iso.match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return ""; const d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3]+n));
+  const p=x=>String(x).padStart(2,"0"); return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}`; }
+function statusOf(days){ if(days==null) return "ok"; if(days<0) return "exp"; if(days===0) return "today"; if(days<=7) return "soon"; return "ok"; }
+function buildKitMap(bomDs){
+  if(!bomDs||!bomDs.rows||!bomDs.rows.length) return null;
+  const kits=new Map(), subToKits=new Map(), nameBySub=new Map();
+  bomDs.rows.forEach(r=>{
+    const kit=String(r[0]||"").trim(), kitName=String(r[1]||"").trim(), sub=String(r[2]||"").trim(), subName=String(r[3]||"").trim(), q=Number(r[4])||1;
+    if(!kit||!sub) return;
+    if(!kits.has(kit)) kits.set(kit,{kit, name:kitName, subs:[]});
+    kits.get(kit).subs.push({sub, name:subName, q});
+    if(!subToKits.has(sub)) subToKits.set(sub,new Set()); subToKits.get(sub).add(kit);
+    if(subName && !nameBySub.has(sub)) nameBySub.set(sub, subName);
+  });
+  const mainToKit=new Map();
+  kits.forEach(k=>{
+    const m=k.subs.find(s=>s.sub===k.kit+"A") || k.subs.find(s=>s.sub.startsWith(k.kit)) || k.subs[0];
+    k.main=m.sub; k.qmain=m.q||1; mainToKit.set(k.main, k);
+  });
+  return {kits, subToKits, mainToKit, nameBySub};
+}
+/* roll a doc's reserved component lines up to kit level per warehouse (ignore shortage: kits counted by the reserved main body, missing partners are noted not deducted) */
+function rollupLines(lines, kitMap){
+  if(!kitMap) return null;
+  const byWh=new Map();
+  lines.forEach(l=>{ if(!byWh.has(l.wh)) byWh.set(l.wh,[]); byWh.get(l.wh).push(l); });
+  const kits=[], singles=[];
+  byWh.forEach((ls,wh)=>{
+    const pool=new Map(), nm=new Map();
+    ls.forEach(l=>{ pool.set(l.sku,(pool.get(l.sku)||0)+l.qty); if(!nm.has(l.sku)) nm.set(l.sku,l.name); });
+    const mains=[...pool.keys()].filter(sku=>kitMap.mainToKit.has(sku)).sort();
+    mains.forEach(sku=>{
+      const k=kitMap.mainToKit.get(sku); const have=pool.get(sku)||0; const sets=Math.floor(have/(k.qmain||1));
+      if(sets<=0) return;
+      const ml=ls.find(l=>l.sku===sku)||ls[0];
+      const children=k.subs.map(s=>{ const need=sets*s.q, avail=pool.get(s.sub)||0, took=Math.min(need,avail);
+        if(pool.has(s.sub)) pool.set(s.sub, avail-took);
+        return {sub:s.sub, name:s.name||nm.get(s.sub)||"", need, took, missing:need-took}; });
+      kits.push({type:"kit", kit:k.kit, name:k.name, sets, wh, children, req:ml.req, eta:ml.eta, exp:ml.exp, days:ml.days, status:ml.status});
+    });
+    pool.forEach((q,sku)=>{ if(q>0){ const src=ls.find(l=>l.sku===sku)||ls[0];
+      singles.push({type:"single", sku, name:nm.get(sku)||"", qty:q, wh, req:src.req, eta:src.eta, exp:src.exp, days:src.days, status:src.status}); } });
+  });
+  kits.sort((a,b)=>a.wh.localeCompare(b.wh)||a.kit.localeCompare(b.kit));
+  singles.sort((a,b)=>a.wh.localeCompare(b.wh)||a.sku.localeCompare(b.sku));
+  return {kits, singles};
+}
+function buildReservations(ds, bomDs){
+  const kitMap=buildKitMap(bomDs);
+  const H=ds.header.map(h=>String(h||"").trim());
+  const ix=n=>H.indexOf(n);
+  const c={doc:ix("Demand Doc No."),line:ix("Line No."),sku:ix("SKUCODE"),name:ix("SKUNAME"),qty:ix("Reserved Qty"),
+    cust:ix("Customer Name"),req:ix("Date Required"),eta:ix("Estimated Delivery Date"),branch:ix("Branch"),sm:ix("Sales Man"),wh:ix("Warehouse")};
+  const now=new Date(); const today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+  const lines=ds.rows.map(r=>{
+    const req=normDate(r[c.req]); const exp=req?addDays(req,15):"";
+    const days=exp?daysUntil(exp,today):null;
+    return { doc:String(r[c.doc]||"").trim(), line:Number(r[c.line])||0, sku:String(r[c.sku]||"").trim(), name:String(r[c.name]||"").trim(),
+      qty:Number(r[c.qty])||0, cust:String(r[c.cust]||"").trim(), req, eta:normDate(r[c.eta]), exp, days, status:statusOf(days),
+      branch:String(r[c.branch]||"").trim(), sm:String(r[c.sm]||"").trim(), wh:String(r[c.wh]||"").trim() };
+  });
+  const gmap=new Map();
+  lines.forEach(l=>{ if(!gmap.has(l.doc)) gmap.set(l.doc,{doc:l.doc,cust:l.cust,branch:l.branch,sm:l.sm,whs:new Set(),lines:[],qty:0,req:l.req,days:l.days}); 
+    const g=gmap.get(l.doc); g.lines.push(l); g.whs.add(l.wh); g.qty+=l.qty;
+    if(l.req && (!g.req || l.req<g.req)) g.req=l.req;            // earliest required = most urgent
+    if(l.days!=null && (g.days==null || l.days<g.days)) g.days=l.days;
+    if(!g.cust) g.cust=l.cust; if(!g.branch) g.branch=l.branch; if(!g.sm) g.sm=l.sm; });
+  const groups=[...gmap.values()].map(g=>{ g.exp=g.req?addDays(g.req,15):""; g.status=statusOf(g.days); g.whList=[...g.whs].sort();
+    g.lines.sort((a,b)=>a.line-b.line || a.sku.localeCompare(b.sku)); return g; });
+  groups.sort((a,b)=> ((a.days==null?1e9:a.days)-(b.days==null?1e9:b.days)) || a.doc.localeCompare(b.doc));
+  const warehouses=[...new Set(lines.map(l=>l.wh).filter(Boolean))].sort();
+  const branches=[...new Set(lines.map(l=>l.branch).filter(Boolean))].sort();
+  const salesmen=[...new Set(lines.map(l=>l.sm).filter(Boolean))].sort();
+  const kpi={ totQty:lines.reduce((s,l)=>s+l.qty,0), docs:groups.length, lines:lines.length,
+    expDocs:groups.filter(g=>g.status==="exp").length, expQty:groups.filter(g=>g.status==="exp").reduce((s,g)=>s+g.qty,0),
+    soonDocs:groups.filter(g=>g.status==="soon"||g.status==="today").length, todayDocs:groups.filter(g=>g.status==="today").length,
+    soonQty:groups.filter(g=>g.status==="soon"||g.status==="today").reduce((s,g)=>s+g.qty,0),
+    biggest: groups.slice().sort((a,b)=>b.qty-a.qty)[0]||null };
+  return { groups, warehouses, branches, salesmen, kpi, kitMap };
 }
 
 /* ---------- rendering ---------- */
@@ -420,12 +616,16 @@ function renderAsOf(){
   const meta=(state.cloud&&state.cloud.meta)||{};
   const line=(label,d)=>{ const m=meta[d]; return `${label}: <b>${m?fmtWhen(m.uploadedAt):"not uploaded"}</b>`; };
   const stale = meta.soh && (Date.now()-new Date(meta.soh.uploadedAt).getTime() > 36*3600*1000);
-  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
+  const rvStale = meta.reserv && (Date.now()-new Date(meta.reserv.uploadedAt).getTime() > 36*3600*1000);
+  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}`;
 }
 
 function renderControls(){
-  const r=state.result; if(!r) return;
+  const r=state.result;
+  if(!r && !state.rvResult) return;
   document.getElementById("controls").style.display="";
+  renderViewTabs(); renderReservControls(); applyView();
+  if(!r) return;
   const plEl=document.getElementById("pl-pills");
   const plAllOn=r.productLines.every(pl=>state.selPL.has(pl));
   plEl.innerHTML = r.productLines.map(pl=>{
@@ -450,6 +650,50 @@ function renderControls(){
     else { if(state.selWH.has(id)){ if(state.selWH.size>1) state.selWH.delete(id); } else state.selWH.add(id); }
     renderControls(); renderReport();
   });
+}
+
+function renderViewTabs(){
+  const badge=document.getElementById("rv-tab-badge");
+  const nExp=state.rvResult ? state.rvResult.kpi.expDocs : 0;
+  if(nExp>0){ badge.style.display=""; badge.textContent=nExp; } else badge.style.display="none";
+  document.querySelectorAll("#view-tabs button").forEach(b=>{
+    b.classList.toggle("on", b.dataset.view===state.view);
+    b.onclick=()=>{ state.view=b.dataset.view; state.viewTouched=true; renderViewTabs(); applyView(); renderReport(); };
+  });
+}
+function applyView(){
+  const stock=state.view==="stock";
+  document.getElementById("stock-controls").style.display = stock?"":"none";
+  document.getElementById("reserv-controls").style.display = stock?"none":"";
+}
+function rvPill(id,label,on,cnt){ return `<button class="pill ${on?"on":""}" data-k="${id}">${label}${cnt!=null?`<span class="cnt">${cnt}</span>`:""}</button>`; }
+function renderReservControls(){
+  const rv=state.rvResult; if(!rv) return;
+  const S=state.rvSel;
+  const mkMulti=(elId,key,items,allLabel)=>{
+    const el=document.getElementById(elId); const sel=S[key];
+    const allOn=sel.has("ALL");
+    el.innerHTML = items.map(it=>rvPill(it.id, it.label, !allOn&&sel.has(it.id), it.cnt)).join(" ")
+      + " " + rvPill("ALL", allLabel||"All", allOn, null);
+    el.querySelectorAll(".pill").forEach(b=>b.onclick=()=>{
+      const k=b.dataset.k;
+      if(k==="ALL"){ S[key]=new Set(["ALL"]); }
+      else { sel.delete("ALL"); if(sel.has(k)){ sel.delete(k); } else sel.add(k); if(!sel.size) sel.add("ALL"); }
+      renderReservControls(); renderReport();
+    });
+  };
+  const statusItems=[
+    {id:"exp",label:"Expired",cnt:rv.groups.filter(g=>g.status==="exp").length},
+    {id:"today",label:"Today",cnt:rv.groups.filter(g=>g.status==="today").length},
+    {id:"soon",label:"≤7 days",cnt:rv.groups.filter(g=>g.status==="soon").length},
+    {id:"ok",label:"Active",cnt:rv.groups.filter(g=>g.status==="ok").length},
+  ];
+  mkMulti("rv-status-pills","status",statusItems,"All");
+  mkMulti("rv-wh-pills","wh", rv.warehouses.map(w=>({id:w,label:w,cnt:null})),"All");
+  mkMulti("rv-branch-pills","branch", rv.branches.map(b=>({id:b,label:b,cnt:null})),"All");
+  const sm=document.getElementById("rv-salesman");
+  sm.innerHTML = `<option value="ALL">All salesmen</option>` + rv.salesmen.map(s=>`<option value="${esc(s)}"${S.sm===s?" selected":""}>${esc(s)}</option>`).join("");
+  sm.onchange=()=>{ state.rvSel.sm=sm.value; renderReport(); };
 }
 function selWarehouses(){ const r=state.result; return r.warehouses.filter(w=>state.selWH.has(r.whGroup(w))); }
 function orderWh(list, allWh){
@@ -480,6 +724,7 @@ function visibleModel(){
 
 function renderReport(){
   const el=document.getElementById("report");
+  if(state.view==="reserv"){ renderReservations(el); return; }
   if(!state.result){ el.innerHTML=`<div class="emptystate">No data yet. Once Stock on Hand, Stock Aging and BOM are all in the cloud the report appears here.</div>`; return; }
   if(state.result.errors.length){ setBanner("err","Reconciliation failed for "+state.result.errors.length+" component/warehouse cells — report not shown. First: "+esc(state.result.errors[0])); el.innerHTML=""; return; }
   setBanner(state.previewing?"warn":"", state.previewing?"Previewing local files — nothing has been published. The sales team still sees the cloud copy.":"");
@@ -551,7 +796,178 @@ function renderReport(){
   });
 }
 
-document.getElementById("search").addEventListener("input",e=>{ state.search=e.target.value.trim(); renderReport(); });
+/* ---------- reservation view ---------- */
+function rvVisibleGroups(){
+  const rv=state.rvResult; const S=state.rvSel; const q=state.rvSearch.toLowerCase();
+  const stAll=S.status.has("ALL"), whAll=S.wh.has("ALL"), brAll=S.branch.has("ALL"), sm=S.sm;
+  const out=[];
+  rv.groups.forEach(g=>{
+    if(!stAll && !S.status.has(g.status)) return;
+    if(!brAll && !S.branch.has(g.branch)) return;
+    if(sm!=="ALL" && g.sm!==sm) return;
+    let lines=g.lines;
+    if(!whAll) lines=lines.filter(l=>S.wh.has(l.wh));
+    if(q){
+      const gm = g.doc.toLowerCase().includes(q) || (g.cust||"").toLowerCase().includes(q);
+      if(!gm) lines=lines.filter(l=> l.sku.toLowerCase().includes(q) || (l.name||"").toLowerCase().includes(q));
+    }
+    if(!lines.length) return;
+    out.push(Object.assign({},g,{lines, qty:lines.reduce((s,l)=>s+l.qty,0), whList:[...new Set(lines.map(l=>l.wh))].sort()}));
+  });
+  return out;
+}
+function rvBadge(g){
+  if(g.status==="exp") return `<span class="rvbadge exp">Expired ${-g.days}d</span>`;
+  if(g.status==="today") return `<span class="rvbadge today">Expires today</span>`;
+  if(g.status==="soon") return `<span class="rvbadge soon">${g.days}d left</span>`;
+  return `<span class="rvbadge ok">${g.days==null?"no date":g.days+"d left"}</span>`;
+}
+function renderReservations(el){
+  setBanner(state.previewing?"warn":"", state.previewing?"Previewing local files — nothing has been published. The sales team still sees the cloud copy.":"");
+  const rv=state.rvResult;
+  if(!rv){ el.innerHTML=`<div class="emptystate">No reservation data yet. Upload the Lock Stock Reservation Report under “Update data”.</div>`; return; }
+  const k=rv.kpi, U=`<span class="u">pcs</span>`;
+  let html=`<div class="kpis">
+    <div class="kpi"><div class="l">Total reserved</div><div class="v">${fmt(k.totQty)||0}${U}</div><div class="s">${k.docs} docs · ${k.lines} lines</div></div>
+    <div class="kpi ${k.expDocs?"exp":""}"><div class="l">Expired</div><div class="v">${fmt(k.expQty)||0}${U}</div><div class="s">${k.expDocs} doc${k.expDocs===1?"":"s"} to release</div></div>
+    <div class="kpi ${k.soonDocs?"soon":""}"><div class="l">Expiring ≤7 days</div><div class="v">${fmt(k.soonQty)||0}${U}</div><div class="s">${k.soonDocs} doc${k.soonDocs===1?"":"s"} · incl. ${k.todayDocs} today</div></div>
+    ${k.biggest?`<div class="kpi"><div class="l">Biggest lock</div><div class="v">${fmt(k.biggest.qty)}${U}</div><div class="s">${esc((k.biggest.cust||k.biggest.doc).slice(0,26))}</div></div>`:""}
+  </div>`;
+
+  const km=rv.kitMap;
+  const ecOf=s=> s==="exp"?"exp-c":((s==="soon"||s==="today")?"soon-c":"");
+  const cf=state.rvCol;
+  const lc={code:cf.code.trim().toLowerCase(), name:cf.name.trim().toLowerCase(), wh:cf.wh.trim().toLowerCase(), req:cf.req.trim(), eta:cf.eta.trim(), exp:cf.exp.trim()};
+  const anyCol = lc.code||lc.name||lc.wh||lc.req||lc.eta||lc.exp;
+  const has=(s,q)=> !q || String(s||"").toLowerCase().includes(q);
+  const hasD=(s,q)=> !q || String(s||"").includes(q);
+  const kitPass=kt=> (has(kt.kit,lc.code)||kt.children.some(c=>has(c.sub,lc.code)))
+      && (has(kt.name,lc.name)||kt.children.some(c=>has(c.name,lc.name)))
+      && has(kt.wh,lc.wh) && hasD(kt.req,lc.req) && hasD(kt.eta,lc.eta) && hasD(kt.exp,lc.exp);
+  const kitChildMatch=kt=> (lc.code && !has(kt.kit,lc.code)) || (lc.name && !has(kt.name,lc.name));
+  const singlePass=s=> has(s.sku,lc.code)&&has(s.name,lc.name)&&has(s.wh,lc.wh)&&hasD(s.req,lc.req)&&hasD(s.eta,lc.eta)&&hasD(s.exp,lc.exp);
+  const compose=(sets,pcs)=>{ const p=[]; if(sets>0)p.push(sets.toLocaleString("en-US")+" sets"); if(pcs>0)p.push(pcs.toLocaleString("en-US")+" pcs"); return p.join(" + ")||"0 pcs"; };
+  const kitMiss=kt=>{ const m=kt.children.filter(c=>c.missing>0); return m.map(c=>`<span class="tag miss">missing ${c.missing} ${esc(c.name||c.sub)}</span>`).join(""); };
+
+  const groups=rvVisibleGroups();
+  const cell=v=>`<th><input data-rf="${v}" type="search" placeholder="filter…" value="${esc(cf[v])}"></th>`;
+  html+=`<div class="tablewrap"><table><thead><tr>
+    <th>SKUCODE</th><th>SKUNAME</th><th class="num">Reserved</th><th>Warehouse</th><th>Date Required</th><th>Est. Delivery</th><th>Expiration</th></tr>
+    <tr class="filterrow">${cell("code")}${cell("name")}<th></th>${cell("wh")}${cell("req")}${cell("eta")}${cell("exp")}</tr>
+  </thead><tbody>`;
+
+  let kitRows=0, looseRows=0, shownDocs=0;
+  groups.forEach(g=>{
+    const roll=rollupLines(g.lines, km);
+    // full-doc composition (pill-filtered, not column-filtered)
+    const totalSets = roll ? roll.kits.reduce((s,x)=>s+x.sets,0) : 0;
+    const singlePcs = roll ? roll.singles.reduce((s,x)=>s+x.qty,0) : g.qty;
+    const comp = compose(totalSets, singlePcs);
+    // column filtering
+    const kits = roll ? roll.kits.filter(kitPass) : [];
+    const singles = roll ? roll.singles.filter(singlePass) : g.lines.filter(l=>singlePass({sku:l.sku,name:l.name,wh:l.wh,req:l.req,eta:l.eta,exp:l.exp}));
+    if(anyCol && !kits.length && !singles.length) return;
+    shownDocs++; kitRows+=kits.length; looseRows+=singles.length;
+    const open=state.openDocs.has(g.doc) || !!anyCol;
+    const cls=g.status==="exp"?"exp":((g.status==="soon"||g.status==="today")?"soon":"");
+    html+=`<tr class="rv-head ${cls}${open?" open":""}" data-doc="${esc(g.doc)}">
+      <td colspan="7" style="padding:0"><div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:7px 10px">
+        <div><span class="caret">${open?"▼":"▶"}</span><span class="doc">${esc(g.doc)}</span> · ${esc(g.cust||"—")}
+          <span class="meta">${esc(g.branch||"")} · ${esc(g.sm||"")} · ${esc(g.whList.join(", "))} · ${comp}</span></div>
+        <div style="text-align:right;white-space:nowrap">req ${esc(g.req||"—")} · exp ${esc(g.exp||"—")} &nbsp; ${rvBadge(g)} &nbsp; <b>${fmt(g.qty)} pcs</b></div>
+      </div></td></tr>`;
+    if(!open) return;
+    if(roll){
+      kits.forEach(kt=>{
+        const kkey=g.doc+"|"+kt.wh+"|"+kt.kit; const kopen=state.openKitRows.has(kkey) || (!!anyCol && kitChildMatch(kt));
+        html+=`<tr class="rv-line rv-kit" data-kkey="${esc(kkey)}">
+          <td class="sku mono"><span class="caret">${kopen?"▼":"▶"}</span>${esc(kt.kit)}</td>
+          <td>${esc(kt.name)}<span class="tag kit">kit</span>${kitMiss(kt)}</td>
+          <td class="num"><b>${kt.sets.toLocaleString("en-US")}</b> <span style="color:var(--ink-3);font-size:10px">set${kt.sets>1?"s":""}</span></td>
+          <td>${esc(kt.wh)}</td><td class="mono">${esc(kt.req)}</td><td class="mono">${esc(kt.eta)}</td><td class="mono ${ecOf(kt.status)}">${esc(kt.exp)}</td></tr>`;
+        if(kopen) kt.children.forEach(c=>{
+          html+=`<tr class="rv-child"><td class="sku mono" style="padding-left:34px">${esc(c.sub)}</td>
+            <td>${esc(c.name)}${c.missing>0?`<span class="tag loose">missing ${c.missing}</span>`:""}</td>
+            <td class="num">${c.took.toLocaleString("en-US")}${c.missing>0?` <span style="color:var(--ink-3)">/ ${c.need}</span>`:""}</td>
+            <td>${esc(kt.wh)}</td><td></td><td></td><td></td></tr>`;
+        });
+      });
+      singles.forEach(s=>{
+        html+=`<tr class="rv-line"><td class="sku mono">${esc(s.sku)}</td><td>${esc(s.name)}</td>
+          <td class="num">${s.qty.toLocaleString("en-US")}</td><td>${esc(s.wh)}</td>
+          <td class="mono">${esc(s.req)}</td><td class="mono">${esc(s.eta)}</td><td class="mono ${ecOf(s.status)}">${esc(s.exp)}</td></tr>`;
+      });
+    } else {
+      singles.forEach(l=>{
+        html+=`<tr class="rv-line"><td class="sku mono">${esc(l.sku)}</td><td>${esc(l.name)}</td>
+          <td class="num">${(l.qty||0).toLocaleString("en-US")}</td><td>${esc(l.wh)}</td>
+          <td class="mono">${esc(l.req)}</td><td class="mono">${esc(l.eta)}</td><td class="mono ${ecOf(l.status)}">${esc(l.exp)}</td></tr>`;
+      });
+    }
+  });
+  if(!shownDocs){
+    html+=`<tr><td colspan="7" class="emptystate" style="border-right:none">No reservations match the current filters.</td></tr>`;
+  }
+  const footer = km ? `${shownDocs} doc${shownDocs===1?"":"s"} · ${kitRows} kit row${kitRows===1?"":"s"}${looseRows?` · ${looseRows} loose`:""} shown` : `${shownDocs} doc${shownDocs===1?"":"s"} shown`;
+  html+=`</tbody></table></div><div class="rowcount">${footer} · kitted by BOM (shortage ignored) · Expiration = Date Required + 15 days · today ${new Date().toISOString().slice(0,10)}</div>`;
+  el.innerHTML=html;
+
+  const h0=el.querySelector("thead tr:first-child");
+  if(h0){ const top=h0.offsetHeight+"px"; el.querySelectorAll("tr.filterrow th").forEach(th=>th.style.top=top); }
+  el.querySelectorAll("tr.filterrow input").forEach(inp=>{
+    inp.addEventListener("input",()=>{ state.rvCol[inp.dataset.rf]=inp.value; state._rvFocus=inp.dataset.rf; renderReport(); });
+    inp.addEventListener("focus",()=>{ state._rvFocus=inp.dataset.rf; });
+  });
+  if(state._rvFocus){ const f=el.querySelector(`tr.filterrow input[data-rf="${state._rvFocus}"]`);
+    if(f){ f.focus(); const v=f.value; try{ f.setSelectionRange(v.length,v.length); }catch(_){} } }
+
+  el.querySelectorAll("tr.rv-head").forEach(tr=>tr.onclick=()=>{
+    const doc=tr.dataset.doc;
+    if(state.openDocs.has(doc)) state.openDocs.delete(doc); else state.openDocs.add(doc);
+    renderReport();
+  });
+  el.querySelectorAll("tr.rv-kit").forEach(tr=>tr.onclick=()=>{
+    const key=tr.dataset.kkey;
+    if(state.openKitRows.has(key)) state.openKitRows.delete(key); else state.openKitRows.add(key);
+    renderReport();
+  });
+}
+
+document.getElementById("rv-expand").onclick=()=>{
+  const rv=state.rvResult; if(!rv) return;
+  const docs=rvVisibleGroups().map(g=>g.doc);
+  const anyClosed=docs.some(d=>!state.openDocs.has(d));
+  if(anyClosed) docs.forEach(d=>state.openDocs.add(d)); else docs.forEach(d=>state.openDocs.delete(d));
+  document.getElementById("rv-expand").textContent=anyClosed?"Collapse all":"Expand all";
+  renderReport();
+};
+document.getElementById("rv-export").onclick=async()=>{
+  const rv=state.rvResult; if(!rv) return;
+  const groups=rvVisibleGroups();
+  const wb=new ExcelJS.Workbook(); const ws=wb.addWorksheet("Reservations");
+  const hdr=["Demand Doc No.","SKUCODE","SKUNAME","Reserved Qty","Customer Name","Date Required","Estimated Delivery Date","Expiration date","Branch","Sales Man","Warehouse","Status","Days to expiry"];
+  const thin={style:"thin",color:{argb:"FFBFBFBF"}}, border={top:thin,bottom:thin,left:thin,right:thin};
+  hdr.forEach((h,i)=>{ const c=ws.getCell(1,i+1); c.value=h; c.font={name:"Arial",bold:true,color:{argb:"FFFFFFFF"},size:10};
+    c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0E3B2E"}}; c.alignment={horizontal:"center"}; c.border=border; });
+  const stName={exp:"Expired",today:"Expires today",soon:"Expiring soon",ok:"Active"};
+  let r=2;
+  groups.forEach(g=>g.lines.forEach(l=>{
+    const vals=[g.doc,l.sku,l.name,l.qty,g.cust,l.req,l.eta,l.exp,g.branch,g.sm,l.wh,stName[l.status]||"",l.days];
+    vals.forEach((v,i)=>{ const c=ws.getCell(r,i+1); c.value=(v==null?"":v); c.font={name:"Arial",size:9}; c.border=border;
+      if(i===3) c.numFmt="#,##0"; if(i===12) c.numFmt="0";
+      if(l.status==="exp") c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFAE4DE"}};
+      else if(l.status==="soon"||l.status==="today") c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFBF1D8"}}; });
+    r++;
+  }));
+  ws.columns=[{width:18},{width:13},{width:26},{width:11},{width:26},{width:13},{width:16},{width:13},{width:16},{width:22},{width:11},{width:13},{width:11}];
+  ws.views=[{state:"frozen",ySplit:1}];
+  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:hdr.length}};
+  const buf=await wb.xlsx.writeBuffer();
+  const url=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+  const a=document.createElement("a"); a.href=url; a.download=`GREE_Mexico_Reservations_${new Date().toISOString().slice(0,10)}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+};
+
 document.getElementById("btn-expand").onclick=()=>{
   const r=state.result; if(!r) return;
   const kits=r.rows.filter(x=>x.type==="kit").map(x=>x.sku);
