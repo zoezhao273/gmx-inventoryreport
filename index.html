@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
 :root{
@@ -302,7 +302,8 @@ tr.loose td.po{background:#f8f4ec}
    ============================================================ */
 const InvEngine = (function(){
 
-  const NUM = v => (typeof v==="number" && isFinite(v)) ? v : (Number(v)||0);
+  const NUM = v => { if(typeof v==="number") return isFinite(v)?v:0;
+    const n=Number(String(v==null?"":v).replace(/[,\s]/g,"")); return isFinite(n)?n:0; };
   const PL_RANK = {RAC:1, LAC:2, CAC:3, IST:4, SMP:5, PAT:6};
   function plOf(cate){ const s=String(cate||""); return s.length>=5 ? s.substring(2,5).toUpperCase() : (s||"OTHER"); }
   function plOfCode(code){ const c=String(code||"").toUpperCase(); const m={R:"RAC",L:"LAC",C:"CAC",I:"IST",D:"SMP"}; return m[c[2]]||"PAT"; }
@@ -424,7 +425,7 @@ const InvEngine = (function(){
 
     warehouses.forEach(wh=>{
       const rem=new Map(); // sub -> remaining
-      subToKits.forEach((_,sub)=>{ const m=mat.get(sub); rem.set(sub, m?NUM(m.qty[wh]):0); });
+      subToKits.forEach((_,sub)=>{ const m=mat.get(sub); rem.set(sub, m?Math.max(0,NUM(m.qty[wh])):0); }); // negative on hand = nothing to kit
       // queue: every kit's main-body buckets, oldest first; no record → last
       const queue=[];
       kits.forEach(k=>{
@@ -452,7 +453,7 @@ const InvEngine = (function(){
       warehouses.forEach(wh=>{
         let used=0; ks.forEach(kc=>{ const k=kits.get(kc); const q=k.subs.find(s=>s.sub===sub).q; used+=(kitQty.get(kc)[wh]||0)*q; });
         const lo=(loose.get(sub)||{})[wh]||0;
-        if(Math.abs(used+lo-NUM(m.qty[wh]))>1e-6) errors.push(`${sub} @ ${wh}: kits ${used} + loose ${lo} ≠ SOH ${m.qty[wh]}`);
+        if(Math.abs(used+lo-Math.max(0,NUM(m.qty[wh])))>1e-6) errors.push(`${sub} @ ${wh}: kits ${used} + loose ${lo} ≠ SOH ${m.qty[wh]}`);
       });
     });
 
@@ -499,14 +500,34 @@ const WH_GROUPS = [
   {id:"MAIN", label:"Main WH"}, {id:"DP", label:"DP WH"}, {id:"RE", label:"RE WH"}, {id:"INTRANSIT", label:"Intransit"}
 ];
 
-/* ---------- cloud client (new deployment: tabs per dataset, PIN on POST) ---------- */
+/* ---------- read key ----------
+   The Apps Script only returns data when the request carries the read key. The key is
+   never written in this file: it arrives in the link (…/#k=KEY), is kept in this
+   browser's localStorage, and is removed from the address bar straight away.        */
+const KEY_STORE="greeInvReadKey";
+function readKey(){ try{ return localStorage.getItem(KEY_STORE)||""; }catch(_){ return ""; } }
+function saveKey(k){ try{ if(k) localStorage.setItem(KEY_STORE,k); else localStorage.removeItem(KEY_STORE); }catch(_){} }
+(function takeKeyFromLink(){
+  const m=/(?:^#|&)k=([^&]+)/.exec(location.hash||"");
+  if(m){ saveKey(decodeURIComponent(m[1]).trim()); history.replaceState(null,"",location.pathname+location.search); }
+})();
+
+/* ---------- cloud client (tabs per dataset, read key on GET, PIN on POST) ---------- */
 async function cloudGet(){
   if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.startsWith("REPLACE_")) throw new Error("Apps Script URL not configured");
-  const r = await fetch(APPS_SCRIPT_URL+"?dataset=all&_="+Date.now(), {method:"GET"});
+  const r = await fetch(APPS_SCRIPT_URL+"?dataset=all&k="+encodeURIComponent(readKey())+"&_="+Date.now(), {method:"GET"});
   if(!r.ok) throw new Error("HTTP "+r.status);
   const j = await r.json();
-  if(!j.ok) throw new Error(j.error||"cloud error");
+  if(!j.ok){ const e=new Error(j.error||"cloud error"); if(j.error==="unauthorized") e.code="auth"; throw e; }
   return j;
+}
+function askForKey(){
+  document.getElementById("asof").textContent="Access key required";
+  setBanner("warn",`This report needs an access key. Open it from the link you were sent, or enter the key here:
+    <input id="rk-in" type="password" autocomplete="off" style="margin:0 6px;padding:3px 6px;font:inherit;width:180px">
+    <button id="rk-go" type="button" style="font:inherit;padding:3px 10px;cursor:pointer">Open</button>`);
+  const inp=document.getElementById("rk-in"), go=()=>{ const v=inp.value.trim(); if(v){ saveKey(v); loadCloud(); } };
+  document.getElementById("rk-go").onclick=go; inp.onkeydown=e=>{ if(e.key==="Enter") go(); }; inp.focus();
 }
 async function cloudPost(dataset, header, rows, meta, pin){
   // no-cors: response body is opaque; confirm by reading back and comparing row count + fileName
@@ -656,7 +677,7 @@ function rebuild(){
     try{
       state.result = InvEngine.build({header:src.soh.header, rows:src.soh.rows}, src.aging.rows, src.bom.rows, src.po?src.po.rows:null);
       if(!state.selPL.size || ![...state.selPL].some(p=>state.result.productLines.includes(p))){ state.selPL=new Set([state.result.productLines[0]]); }
-    }catch(err){ console.error(err); state.result=null; setBanner("err","Could not build the report: "+err.message); }
+    }catch(err){ console.error(err); state.result=null; setBanner("err","Could not build the report: "+esc(err.message)); }
   }
   if(!state.viewTouched){ state.view = (!state.result && state.rvResult) ? "reserv" : "stock"; }
   renderControls(); renderAsOf(); renderReport();
@@ -749,7 +770,7 @@ function buildReservations(ds, bomDs){
 /* ---------- rendering ---------- */
 function fmt(n){ return n ? Math.round(n).toLocaleString("en-US") : ""; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function fmtWhen(iso){ if(!iso) return "—"; const d=new Date(iso); return isNaN(d)?String(iso):d.toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}); }
+function fmtWhen(iso){ if(!iso) return "—"; const d=new Date(iso); return isNaN(d)?esc(String(iso)):d.toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}); }
 function setBanner(kind,msg){ const b=document.getElementById("banner"); b.innerHTML = msg ? `<div class="banner ${kind}">${msg}</div>` : ""; }
 
 function renderAsOf(){
@@ -783,7 +804,7 @@ function renderControls(){
   const present=new Set(r.warehouses.map(w=>r.whGroup(w)));
   const groups=WH_GROUPS.filter(g=>present.has(g.id));
   const allOn=groups.every(g=>state.selWH.has(g.id));
-  whEl.innerHTML = groups.map(g=>`<button class="pill ${state.selWH.has(g.id)?"on":""}" data-wh="${g.id}" title="${r.warehouses.filter(w=>r.whGroup(w)===g.id).join(", ")}">${g.label}</button>`).join(" ")
+  whEl.innerHTML = groups.map(g=>`<button class="pill ${state.selWH.has(g.id)?"on":""}" data-wh="${g.id}" title="${esc(r.warehouses.filter(w=>r.whGroup(w)===g.id).join(", "))}">${g.label}</button>`).join(" ")
     + ` <button class="pill ${allOn?"on":""}" data-wh="ALL">All</button>`;
   whEl.querySelectorAll(".pill").forEach(b=>b.onclick=()=>{
     const id=b.dataset.wh;
@@ -820,7 +841,7 @@ function applyView(){
   document.getElementById("stock-controls").style.display = stock?"":"none";
   document.getElementById("reserv-controls").style.display = stock?"none":"";
 }
-function rvPill(id,label,on,cnt){ return `<button class="pill ${on?"on":""}" data-k="${id}">${label}${cnt!=null?`<span class="cnt">${cnt}</span>`:""}</button>`; }
+function rvPill(id,label,on,cnt){ return `<button class="pill ${on?"on":""}" data-k="${esc(id)}">${esc(label)}${cnt!=null?`<span class="cnt">${cnt}</span>`:""}</button>`; }
 function renderReservControls(){
   const rv=state.rvResult; if(!rv) return;
   const S=state.rvSel;
@@ -1302,6 +1323,7 @@ async function loadCloud(){
     if(missing.length){ setBanner("warn",`Cloud is missing: ${missing.join(", ")}. Upload them under “Update data”.`); document.getElementById("admin").open=true; }
     rebuild();
   }catch(err){
+    if(err.code==="auth"){ askForKey(); return; }
     document.getElementById("asof").textContent="Cloud unavailable";
     setBanner("err","Could not load cloud data: "+esc(err.message)+". You can still preview with local files under “Update data”.");
     document.getElementById("admin").open=true; renderReport();
