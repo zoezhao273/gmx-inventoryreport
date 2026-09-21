@@ -218,10 +218,6 @@ tr.loose td.po{background:#f8f4ec}
       <div class="ctl-row">
         <span class="ctl-label">Status</span>
         <span id="rv-status-pills"></span>
-      </div>
-      <div class="ctl-row">
-        <span class="ctl-label">Warehouse</span>
-        <span id="rv-wh-pills"></span>
         <button class="act ghost small" id="rv-expand" style="margin-left:auto">Expand all</button>
         <button class="act ghost small" id="rv-export">Export .xlsx</button>
       </div>
@@ -251,7 +247,7 @@ tr.loose td.po{background:#f8f4ec}
           <div class="pub"><button class="act small" data-pub="soh" disabled>Publish to cloud</button><span class="status" id="ps-soh"></span></div>
         </div>
         <div class="dz"><input type="file" accept=".xlsx" data-ds="po">
-          <div class="t">Purchase Order list</div><div class="h">Weekly · needs the <b>Unreceived Qty</b> column · only open lines and quantities are published — no prices or amounts</div>
+          <div class="t">Purchase Order list</div><div class="h">Daily · needs the <b>Unreceived Qty</b> column</div>
           <div class="st" id="st-po">Drop or click to choose the .xlsx</div>
           <div class="pub"><button class="act small" data-pub="po" disabled>Publish to cloud</button><span class="status" id="ps-po"></span></div>
         </div>
@@ -305,6 +301,14 @@ const InvEngine = (function(){
   const NUM = v => { if(typeof v==="number") return isFinite(v)?v:0;
     const n=Number(String(v==null?"":v).replace(/[,\s]/g,"")); return isFinite(n)?n:0; };
   const PL_RANK = {RAC:1, LAC:2, CAC:3, IST:4, SMP:5, PAT:6};
+  /* warehouse order: city prefix GDL > MEX > MTY > CUL > MID (others after, Z-INTRANSIT last),
+     then plain ascending code inside a city (GDL-JD, GDL-JD-DP, GDL-RC, GDL-RC-DP …)          */
+  const WH_CITY = {GDL:1, MEX:2, MTY:3, CUL:4, MID:5};
+  function whCmp(a,b){
+    const A=String(a||"").toUpperCase(), B=String(b||"").toUpperCase();
+    const ra=WH_CITY[A.split("-")[0]]||(A.startsWith("Z-")?99:50), rb=WH_CITY[B.split("-")[0]]||(B.startsWith("Z-")?99:50);
+    return (ra-rb) || (A<B?-1:A>B?1:0);
+  }
   function plOf(cate){ const s=String(cate||""); return s.length>=5 ? s.substring(2,5).toUpperCase() : (s||"OTHER"); }
   function plOfCode(code){ const c=String(code||"").toUpperCase(); const m={R:"RAC",L:"LAC",C:"CAC",I:"IST",D:"SMP"}; return m[c[2]]||"PAT"; }
   function whGroup(wh){
@@ -368,7 +372,7 @@ const InvEngine = (function(){
     const iCate=H.indexOf("CATECODE"), iSku=H.indexOf("SKUCODE"), iName=H.indexOf("SKUNAME");
     const iTotal=H.indexOf("TOTAL");
     const whCols=[]; H.forEach((h,i)=>{ if(i>Math.max(iCate,iSku,iName) && i!==iTotal && h && h!=="CATENAME") whCols.push({name:h, idx:i}); });
-    const warehouses = whCols.map(c=>c.name);
+    const warehouses = whCols.map(c=>c.name).sort(whCmp);
 
     const mat = new Map(); // sku -> {sku,name,cate,pl,qty:{wh:n},total}
     soh.rows.forEach(r=>{
@@ -487,7 +491,7 @@ const InvEngine = (function(){
       stats:{materials:mat.size, kits:kits.size, sohTotal:[...mat.values()].reduce((s,m)=>s+m.total,0)}};
   }
 
-  return {build, plOf, whGroup, PL_RANK};
+  return {build, plOf, whGroup, whCmp, PL_RANK};
 })();
 
 </script>
@@ -660,7 +664,7 @@ const PARSERS={soh:parseSOH, aging:parseAging, bom:parseBOM, reserv:parseReserv,
 const DATASETS=["soh","aging","bom","reserv","po"];
 const state={ cloud:null, local:{}, localFiles:{}, result:null, rvResult:null,
   view:"stock", selPL:new Set(["RAC"]), selWH:new Set(["MAIN"]), showPO:false, search:"", previewing:false, openKits:new Set(), colFilter:{code:"",name:""}, _focus:null,
-  rvSel:{status:new Set(["ALL"]), wh:new Set(["ALL"]), branch:new Set(["ALL"]), sm:"ALL"}, rvSearch:"", rvCol:{code:"",name:"",wh:"",req:"",eta:"",exp:""}, _rvFocus:null, openDocs:new Set(), openKitRows:new Set(), rvOpenInit:false, viewTouched:false };
+  rvSel:{status:new Set(["ALL"]), branch:new Set(["ALL"]), sm:"ALL"}, rvSearch:"", rvCol:{code:"",name:"",wh:"",req:"",eta:"",exp:""}, _rvFocus:null, openDocs:new Set(), openKitRows:new Set(), rvOpenInit:false, viewTouched:false };
 
 function datasetsInUse(){
   const src={};
@@ -738,8 +742,8 @@ function rollupLines(lines, kitMap){
     pool.forEach((q,sku)=>{ if(q>0){ const src=ls.find(l=>l.sku===sku)||ls[0];
       singles.push({type:"single", sku, name:nm.get(sku)||"", qty:q, wh, req:src.req, eta:src.eta, exp:src.exp, days:src.days, status:src.status}); } });
   });
-  kits.sort((a,b)=>a.wh.localeCompare(b.wh)||a.kit.localeCompare(b.kit));
-  singles.sort((a,b)=>a.wh.localeCompare(b.wh)||a.sku.localeCompare(b.sku));
+  kits.sort((a,b)=>InvEngine.whCmp(a.wh,b.wh)||a.kit.localeCompare(b.kit));
+  singles.sort((a,b)=>InvEngine.whCmp(a.wh,b.wh)||a.sku.localeCompare(b.sku));
   return {kits, singles};
 }
 function buildReservations(ds, bomDs){
@@ -762,10 +766,10 @@ function buildReservations(ds, bomDs){
     if(l.req && (!g.req || l.req<g.req)) g.req=l.req;            // earliest required = most urgent
     if(l.days!=null && (g.days==null || l.days<g.days)) g.days=l.days;
     if(!g.branch) g.branch=l.branch; if(!g.sm) g.sm=l.sm; });
-  const groups=[...gmap.values()].map(g=>{ g.exp=g.req?addDays(g.req,15):""; g.status=statusOf(g.days); g.whList=[...g.whs].sort();
+  const groups=[...gmap.values()].map(g=>{ g.exp=g.req?addDays(g.req,15):""; g.status=statusOf(g.days); g.whList=[...g.whs].sort(InvEngine.whCmp);
     g.lines.sort((a,b)=>a.line-b.line || a.sku.localeCompare(b.sku)); return g; });
   groups.sort((a,b)=> ((a.days==null?1e9:a.days)-(b.days==null?1e9:b.days)) || a.doc.localeCompare(b.doc));
-  const warehouses=[...new Set(lines.map(l=>l.wh).filter(Boolean))].sort();
+  const warehouses=[...new Set(lines.map(l=>l.wh).filter(Boolean))].sort(InvEngine.whCmp);
   const branches=[...new Set(lines.map(l=>l.branch).filter(Boolean))].sort();
   const salesmen=[...new Set(lines.map(l=>l.sm).filter(Boolean))].sort();
   const kpi={ totQty:lines.reduce((s,l)=>s+l.qty,0), docs:groups.length, lines:lines.length,
@@ -857,13 +861,21 @@ function renderReservControls(){
   const mkMulti=(elId,key,items,allLabel)=>{
     const el=document.getElementById(elId); const sel=S[key];
     const allOn=sel.has("ALL");
-    el.innerHTML = items.map(it=>rvPill(it.id, it.label, !allOn&&sel.has(it.id), it.cnt)).join(" ")
+    // default All (every option lit). All while all on -> first option only; All again -> every option.
+    // clicking one option while All is on turns just that one off
+    el.innerHTML = items.map(it=>rvPill(it.id, it.label, allOn||sel.has(it.id), it.cnt)).join(" ")
       + " " + rvPill("ALL", allLabel||"All", allOn, null);
     el.querySelectorAll(".pill").forEach(b=>b.onclick=()=>{
-      const k=b.dataset.k;
-      if(k==="ALL"){ S[key]=new Set(["ALL"]); }
-      else { sel.delete("ALL"); if(sel.has(k)){ sel.delete(k); } else sel.add(k); if(!sel.size) sel.add("ALL"); }
-      renderReservControls(); renderReport();
+      const k=b.dataset.k, ids=items.map(it=>it.id);
+      let next;
+      if(k==="ALL") next = allOn ? new Set([ids[0]]) : new Set(["ALL"]);   // same toggle as Available stock
+      else {
+        next = allOn ? new Set(ids) : new Set(sel);
+        if(next.has(k)) next.delete(k); else next.add(k);
+        if(!next.size) return;                                   // keep at least one, like Available stock
+        if(ids.every(id=>next.has(id))) next=new Set(["ALL"]);   // every option on = All
+      }
+      S[key]=next; renderReservControls(); renderReport();
     });
   };
   const statusItems=[
@@ -873,19 +885,13 @@ function renderReservControls(){
     {id:"ok",label:"Active",cnt:rv.groups.filter(g=>g.status==="ok").length},
   ];
   mkMulti("rv-status-pills","status",statusItems,"All");
-  mkMulti("rv-wh-pills","wh", rv.warehouses.map(w=>({id:w,label:w,cnt:null})),"All");
   mkMulti("rv-branch-pills","branch", rv.branches.map(b=>({id:b,label:b,cnt:null})),"All");
   const sm=document.getElementById("rv-salesman");
   sm.innerHTML = `<option value="ALL">All salesmen</option>` + rv.salesmen.map(s=>`<option value="${esc(s)}"${S.sm===s?" selected":""}>${esc(s)}</option>`).join("");
   sm.onchange=()=>{ state.rvSel.sm=sm.value; renderReport(); };
 }
 function selWarehouses(){ const r=state.result; return r.warehouses.filter(w=>state.selWH.has(r.whGroup(w))); }
-function orderWh(list, allWh){
-  const baseOf=w=>String(w).replace(/-(DP|RE)$/i,"");
-  const rank=w=>/-DP$/i.test(w)?1:(/-RE$/i.test(w)?2:0);
-  const keyIdx=w=>{ const b=baseOf(w); const i=allWh.indexOf(b); return i>=0?i:allWh.indexOf(w); };
-  return list.slice().sort((a,b)=> (keyIdx(a)-keyIdx(b)) || (rank(a)-rank(b)) );
-}
+function orderWh(list){ return list.slice().sort(InvEngine.whCmp); }
 function sumSel(q){ let s=0; selWarehouses().forEach(w=>s+=q[w]||0); return s; }
 function poOrdersSel(){
   const r=state.result; if(!r||!r.poOrders) return [];
@@ -1059,20 +1065,19 @@ function renderReport(){
 /* ---------- reservation view ---------- */
 function rvVisibleGroups(){
   const rv=state.rvResult; const S=state.rvSel; const q=state.rvSearch.toLowerCase();
-  const stAll=S.status.has("ALL"), whAll=S.wh.has("ALL"), brAll=S.branch.has("ALL"), sm=S.sm;
+  const stAll=S.status.has("ALL"), brAll=S.branch.has("ALL"), sm=S.sm;
   const out=[];
   rv.groups.forEach(g=>{
     if(!stAll && !S.status.has(g.status)) return;
     if(!brAll && !S.branch.has(g.branch)) return;
     if(sm!=="ALL" && g.sm!==sm) return;
     let lines=g.lines;
-    if(!whAll) lines=lines.filter(l=>S.wh.has(l.wh));
     if(q){
       const gm = g.doc.toLowerCase().includes(q);
       if(!gm) lines=lines.filter(l=> l.sku.toLowerCase().includes(q) || (l.name||"").toLowerCase().includes(q));
     }
     if(!lines.length) return;
-    out.push(Object.assign({},g,{lines, qty:lines.reduce((s,l)=>s+l.qty,0), whList:[...new Set(lines.map(l=>l.wh))].sort()}));
+    out.push(Object.assign({},g,{lines, qty:lines.reduce((s,l)=>s+l.qty,0), whList:[...new Set(lines.map(l=>l.wh))].sort(InvEngine.whCmp)}));
   });
   return out;
 }
