@@ -238,6 +238,18 @@ body.compact table{font-size:11.5px}
 body.compact th,body.compact td{padding:5px 7px}
 body.compact .rowcount{margin:3px 0 0;font-size:10.5px}
 body.compact footer{display:none}
+/* SKUNAME wraps onto a second line instead of being cut off */
+body.compact td.nm{white-space:normal;line-height:1.3}
+body.compact td.nm span.t,body.compact td.nm span.t.tagged{display:inline;max-width:none;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}
+body.compact td.nm .tag{white-space:nowrap}
+/* upload times: one short line on phones, tap to expand */
+.asof-short{display:none}
+body.compact .asof{cursor:pointer}
+body.compact .asof .asof-full{display:none}
+body.compact .asof .asof-short{display:inline;white-space:nowrap}
+body.compact .asof .more{opacity:.7}
+body.compact .asof.open .asof-full{display:inline}
+body.compact .asof.open .asof-short{display:none}
 body.compact td.nm span.t{max-width:calc(var(--w2,160px) - 20px)}
 body.compact td.nm span.t.tagged{max-width:calc(var(--w2,160px) - 60px)}
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
@@ -969,7 +981,11 @@ function renderAsOf(){
   const line=(label,d)=>{ const m=meta[d]; return `${label}: <b>${m?fmtWhen(m.uploadedAt):"not uploaded"}</b>`; };
   const stale = meta.soh && (Date.now()-new Date(meta.soh.uploadedAt).getTime() > 36*3600*1000);
   const rvStale = meta.reserv && (Date.now()-new Date(meta.reserv.uploadedAt).getTime() > 36*3600*1000);
-  el.innerHTML = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Purchase orders","po")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
+  const sm=meta.soh, short=sm?new Date(sm.uploadedAt).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"not uploaded";
+  const full = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Purchase orders","po")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
+  // phones: one short line (Stock on Hand time); tap it to see every file's upload time
+  el.innerHTML = `<span class="asof-full">${full}</span><span class="asof-short">SOH <b>${esc(short)}</b>${(stale||rvStale)?' <span class="warn">●</span>':""} <span class="more">ⓘ</span></span>`;
+  el.onclick = ()=>{ if(document.body.classList.contains("compact")) el.classList.toggle("open"); };
 }
 
 function renderControls(){
