@@ -207,6 +207,39 @@ tr.child td.po{background:#f2f5f9}
 tr.loose td.po{background:#f8f4ec}
 
 @media (max-width:640px){ .ctl-label{width:100%} .search{width:100%;margin-left:0} .appbar{padding:12px 14px} .shell{padding:0 10px 6px} }
+/* ---------- compact mode (phones, portrait or landscape): body.compact is set by JS ---------- */
+.topline{display:flex;align-items:center;gap:8px}
+.topline .viewtabs{margin-bottom:10px;flex:none}
+.filt-toggle{display:none}
+body.compact .appbar{padding:6px 12px;border-bottom-width:2px;flex-wrap:nowrap}
+body.compact .appbar .eyebrow,body.compact .appbar .sub{display:none}
+body.compact .appbar h1{font-size:14px}
+body.compact .asof{font-size:10px;line-height:1.3}
+body.compact .bar-r{gap:8px;flex-wrap:nowrap}
+body.compact details.admin>summary{padding:4px 8px!important;font-size:11px!important;white-space:nowrap}
+body.compact .shell{padding:0 8px 4px}
+body.compact .controls{position:relative;padding:6px 0;max-height:none;overflow:visible;z-index:30}
+body.compact .topline .viewtabs{margin-bottom:0}
+body.compact .viewtabs button{padding:5px 10px;font-size:12px;white-space:nowrap}
+body.compact .filt-toggle{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;justify-content:flex-end;font-family:inherit;font-size:12px;
+  padding:5px 10px;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--ink);cursor:pointer}
+body.compact .filt-toggle .ft-l{font-weight:600;color:var(--g-900)}
+body.compact .filt-toggle .ft-s{color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+body.compact .filt-toggle .ft-c{transition:transform .12s}
+body.compact.filt-open .filt-toggle .ft-c{transform:rotate(180deg)}
+/* filters drop down OVER the table, so opening them never shrinks the table */
+body.compact .filt-body{display:none;position:absolute;left:0;right:0;top:100%;background:var(--paper);padding:10px;border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:0 10px 24px rgba(0,0,0,.16);max-height:65vh;overflow:auto;overscroll-behavior:contain}
+body.compact.filt-open .filt-body{display:block}
+body.compact .ctl-label{width:100%;margin-bottom:-2px}
+body.compact .pill{padding:5px 11px;font-size:12px}
+body.compact .tablewrap{margin-top:4px;min-height:80px}
+body.compact table{font-size:11.5px}
+body.compact th,body.compact td{padding:5px 7px}
+body.compact .rowcount{margin:3px 0 0;font-size:10.5px}
+body.compact footer{display:none}
+body.compact td.nm span.t{max-width:calc(var(--w2,160px) - 20px)}
+body.compact td.nm span.t.tagged{max-width:calc(var(--w2,160px) - 60px)}
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
 </style>
 </head>
@@ -268,10 +301,14 @@ tr.loose td.po{background:#f8f4ec}
 <div class="shell">
 
   <div class="controls" id="controls" style="display:none">
+    <div class="topline">
     <div class="viewtabs" id="view-tabs">
       <button data-view="stock" class="on">Available stock</button>
       <button data-view="reserv">Reservations<span class="b" id="rv-tab-badge" style="display:none"></span></button>
     </div>
+    <button class="filt-toggle" id="filt-toggle" type="button"><span class="ft-l">Filters</span><span class="ft-s" id="filt-sum"></span><span class="ft-c">&#9662;</span></button>
+    </div>
+    <div class="filt-body" id="filt-body">
 
     <div id="stock-controls">
       <div class="ctl-row">
@@ -303,6 +340,7 @@ tr.loose td.po{background:#f8f4ec}
         <span class="ctl-label" style="width:auto;margin-left:10px">Salesman</span>
         <select id="rv-salesman" class="search" style="margin-left:0;width:auto;min-width:180px"></select>
       </div>
+    </div>
     </div>
   </div>
 
@@ -966,6 +1004,7 @@ function renderControls(){
   });
 
   renderPOControls();
+  updateFilterSummary();
 }
 
 function renderPOControls(){
@@ -992,6 +1031,7 @@ function applyView(){
   const stock=state.view==="stock";
   document.getElementById("stock-controls").style.display = stock?"":"none";
   document.getElementById("reserv-controls").style.display = stock?"none":"";
+  if(typeof updateFilterSummary==="function") updateFilterSummary();
 }
 function rvPill(id,label,on,cnt){ return `<button class="pill ${on?"on":""}" data-k="${esc(id)}">${esc(label)}${cnt!=null?`<span class="cnt">${cnt}</span>`:""}</button>`; }
 function renderReservControls(){
@@ -1133,6 +1173,33 @@ function notesFor(pl){
   }).filter(Boolean);
 }
 
+/* ---------- layout mode: phones get a compact shell (portrait AND landscape) ---------- */
+function layoutMode(){ const w=window.innerWidth, h=window.innerHeight;
+  return {compact: w<900 || h<560, narrow: w<600}; }
+let _mode="";
+function applyLayoutMode(){
+  const m=layoutMode(), key=(m.compact?"c":"")+(m.narrow?"n":"");
+  document.body.classList.toggle("compact", m.compact);
+  if(!m.compact) document.body.classList.remove("filt-open");
+  if(key!==_mode){ const first=!_mode; _mode=key; if(!first && typeof renderReport==="function" && (state.result||state.rvResult)) renderReport(); }
+  updateFilterSummary();
+}
+function updateFilterSummary(){
+  const el=document.getElementById("filt-sum"); if(!el || typeof state==="undefined") return;
+  let t="";
+  if(state.view==="stock"){ const lbl=id=>{ const g=(typeof WH_GROUPS!=="undefined"?WH_GROUPS:[]).find(x=>x.id===id); return g?g.label:id; };
+    t=[...state.selPL].join("+")+" · "+[...state.selWH].map(lbl).join("+")+(state.showPO?" · PO":""); }
+  el.textContent=t;
+}
+document.getElementById("filt-toggle").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("filt-open"); });
+// tap outside the dropped-down filters closes them (taps inside keep them open for several choices)
+document.addEventListener("click",e=>{ if(!document.body.classList.contains("filt-open")) return;
+  if(!e.target.isConnected) return;   // the tapped pill was just re-rendered: the tap was inside
+  const c=document.getElementById("controls"); if(c && !c.contains(e.target)) document.body.classList.remove("filt-open"); });
+window.addEventListener("resize",applyLayoutMode);
+window.addEventListener("orientationchange",()=>setTimeout(applyLayoutMode,150));
+applyLayoutMode();
+
 /* only the table scrolls; its two header rows stick to the top of the table */
 function pinHeader(){
   const bar=document.querySelector(".appbar"); if(bar) document.documentElement.style.setProperty("--bar-h", bar.getBoundingClientRect().bottom+"px");
@@ -1182,10 +1249,13 @@ function renderReport(){
 
   // fixed widths: SKUCODE fits the longest material code (23 chars, mono),
   // SKUNAME fits ~30 characters — longer names are clipped with an ellipsis and shown on hover
-  const W1=195, W2=230;
+  // phones: narrower code/name columns; in portrait only SKUCODE stays frozen so the numbers have room
+  const M=layoutMode(), W1=M.compact?128:195, W2=M.compact?160:230, FN=!M.narrow;
+  document.documentElement.style.setProperty("--w2",W2+"px");
   const CW=w=>`width:${w}px;min-width:${w}px;max-width:${w}px`;
-  const fz=(left,w)=>`class="frozen" style="left:${left}px;${CW(w)}"`;
-  const nameCell=(name,tagHtml,tip)=>`<td class="frozen nm" style="left:${W1}px;${CW(W2)}"${tip}>`
+  const fz=(left,w)=>(left>0&&!FN)?`style="${CW(w)}"`:`class="frozen" style="left:${left}px;${CW(w)}"`;
+  const fc2=`${FN?`class="frozen${""}" style="left:${W1}px;`:`style="`}${CW(W2)}"`;
+  const nameCell=(name,tagHtml,tip)=>`<td class="${FN?"frozen ":""}nm" style="${FN?`left:${W1}px;`:""}${CW(W2)}"${tip}>`
     +`<span class="t${tagHtml?" tagged":""}">${esc(name)}</span>${tagHtml}</td>`;
   const cell=(x,w)=>`<td class="num${x.qty[w]?"":" zero"}">${fmt(x.qty[w])}</td>`;
   const poCells=x=>pos.map((o,i)=>`<td class="num po${i?"":" pofirst"}${poOf(x,o.no)?"":" zero"}">${fmt(poOf(x,o.no))}</td>`).join("")
@@ -1200,7 +1270,7 @@ function renderReport(){
     ${pos.length?`<th class="num posum" title="TOTAL on hand (already net of reservations) + everything still to receive on the orders shown">TOTAL<br>+ on order</th>`:""}</tr>
     <tr class="filterrow">
       <th class="frozen" style="left:0;${CW(W1)}"><input data-cf="code" type="search" placeholder="filter code…" value="${esc(state.colFilter.code)}"></th>
-      <th class="frozen" style="left:${W1}px;${CW(W2)}"><input data-cf="name" type="search" placeholder="filter name…" value="${esc(state.colFilter.name)}"></th>
+      <th ${fc2}><input data-cf="name" type="search" placeholder="filter name…" value="${esc(state.colFilter.name)}"></th>
       ${whs.map(()=>`<th></th>`).join("")}<th></th>${pos.map(()=>`<th></th>`).join("")}${pos.length?`<th></th>`:""}</tr>
     </thead><tbody>`;
   const tot=(list,w)=>list.reduce((s,x)=>s+(x.qty[w]||0),0);
@@ -1213,7 +1283,7 @@ function renderReport(){
       ${whs.map(w=>cell(x,w)).join("")}<td class="num"><b>${fmt(sumSel(x.qty))}</b></td>${poCells(x)}</tr>`; };
   groups.forEach(g=>{
     const plOpen=!state.closedPL.has(g.pl), lsOpen=!state.closedLoose.has(g.pl);
-    html+=`<tr class="pl-head${plOpen?" open":""}" data-pl="${esc(g.pl)}"><td class="frozen" style="left:0;${CW(W1)}"><span class="caret">&#9654;</span>${g.pl}</td><td class="frozen cap" style="left:${W1}px;${CW(W2)}">${g.main.length} materials${g.loose.length?` · ${g.loose.length} loose`:""}</td>
+    html+=`<tr class="pl-head${plOpen?" open":""}" data-pl="${esc(g.pl)}"><td class="frozen" style="left:0;${CW(W1)}"><span class="caret">&#9654;</span>${g.pl}</td><td class="${FN?"frozen ":""}cap" style="${FN?`left:${W1}px;`:""}${CW(W2)}">${g.main.length} materials${g.loose.length?` · ${g.loose.length} loose`:""}</td>
       ${whs.map(w=>`<td class="num">${fmt(tot(g.main,w))}</td>`).join("")}<td class="num">${fmt(g.main.reduce((s,x)=>s+sumSel(x.qty),0))}</td>${poTotCells(g.main)}</tr>`;
     // folding a section only hides rows (no re-render), so the table keeps its scroll position
     const gA=` data-g="${esc(g.pl)}"`, hideMain=plOpen?"":` style="display:none"`, hideLoose=lsOpen?"":` style="display:none"`;
@@ -1230,7 +1300,7 @@ function renderReport(){
       } else html+=line(x,"item","",gA+` data-sec="main"`+hideMain);
     });
     if(g.loose.length){
-      html+=`<tr class="loose-head${lsOpen?" open":""}" data-pl="${esc(g.pl)}"><td class="frozen" style="left:0;${CW(W1)}"><span class="caret">&#9654;</span>Loose parts</td><td class="frozen cap" style="left:${W1}px;${CW(W2)}">on hand but not kittable here${pos.length?"<br>on order: bought unpaired":""}</td>
+      html+=`<tr class="loose-head${lsOpen?" open":""}" data-pl="${esc(g.pl)}"><td class="frozen" style="left:0;${CW(W1)}"><span class="caret">&#9654;</span>Loose parts</td><td class="${FN?"frozen ":""}cap" style="${FN?`left:${W1}px;`:""}${CW(W2)}">on hand but not kittable here${pos.length?"<br>on order: bought unpaired":""}</td>
         ${whs.map(w=>`<td class="num">${fmt(tot(g.loose,w))}</td>`).join("")}<td class="num">${fmt(g.loose.reduce((s,x)=>s+sumSel(x.qty),0))}</td>${poTotCells(g.loose)}</tr>`;
       g.loose.forEach(x=>html+=line(x,"loose","",gA+` data-sec="loose"`+hideLoose));
     }
