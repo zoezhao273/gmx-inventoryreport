@@ -74,6 +74,15 @@ tr.pl-head:hover td{background:var(--g-100)}
 tr.pl-sub td{background:#eef2f0;font-weight:600}
 tr.loose-head td{background:var(--amber-bg);color:#6b4a0e;font-weight:600;font-size:12px}
 tr.loose-head:hover td{background:var(--amber-bg)}
+tr.loose-note td{background:#fffdf6;border-top:1px dashed #e6c98a;padding:8px 12px;white-space:normal;text-align:left}
+tr.loose-note:hover td{background:#fffdf6}
+.ln{position:sticky;left:12px;max-width:min(1100px,calc(100vw - 110px));font-size:12px;line-height:1.55;color:#4a3a14}
+.ln .c{margin:3px 0 6px}
+.ln .c>b{color:#6b4a0e}
+.ln .who{display:inline-block;font-size:10.5px;font-weight:600;padding:0 7px;border-radius:9px;background:#f3e3bf;color:#6b4a0e;margin-left:6px}
+.ln .c.ok>b{color:#1d5c43}.ln .c.ok .who{background:#dfeee6;color:#1d5c43}
+.ln ul{margin:2px 0 0;padding-left:18px}.ln li{margin:1px 0}
+.ln .m{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px}
 tr.loose td{background:#fdf8ec}
 tr.loose td.frozen[title]{cursor:help}
 td.nm span.t{display:inline-block;max-width:205px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
@@ -234,7 +243,7 @@ tr.loose td.po{background:#f8f4ec}
   <div id="report"><div class="emptystate">Loading…</div></div>
 
   <details class="admin" id="admin">
-    <summary><span>Update data</span><span class="hint">Finance only · Stock on Hand, Stock Aging and Reservation daily, Purchase Orders weekly, BOM when it changes</span></summary>
+    <summary><span>Update data</span><span class="hint">Finance only · Stock on Hand, Purchase Orders, Stock Aging and Reservation daily, BOM when it changes</span></summary>
     <div class="admin-body">
       <div class="pinrow">
         <label for="pin">Upload PIN</label><input id="pin" type="password" autocomplete="off">
@@ -471,6 +480,105 @@ const InvEngine = (function(){
       o.leftover.forEach((q,c)=>{ if(subToKits.has(c)) addPO(poLoose,c,o.no,q); });
     });
 
+
+    /* ---------- Loose-part diagnosis (explanations only — the table keeps the real stock) ----------
+       Order of matching, each step working on what the previous one left:
+         1 damaged packaging : main warehouse + its own "-DP" warehouse together form sets
+         2 on order          : what is left in a main warehouse + every open PO shipped to that
+                               same warehouse (pooled across orders, no-ETA / overdue included)
+         3 transfer?         : two main warehouses of the same city would form sets together —
+                               never paired, only flagged
+         4 samples           : SMP pieces still unpaired
+         5 shortage          : everything else, stock and on-order pieces bought unpaired
+       plus: partly received POs (goods may be in without a receipt doc).
+       Kits compete for shared parts: the kit using the most parts that are already in stock
+       goes first, then kits with more components, then kit code.                              */
+    const looseNotes=[];
+    {
+      const plSku=c=>{ const m=mat.get(c); return m?m.pl:plOfCode(c); };
+      const stockLeft=new Map();            // wh -> Map(sub -> qty)
+      loose.forEach((per,sub)=>Object.keys(per).forEach(wh=>{ if(!stockLeft.has(wh)) stockLeft.set(wh,new Map()); stockLeft.get(wh).set(sub,per[wh]); }));
+      const poLeft=new Map();               // shipTo -> [{no, eta, left:Map(sub->qty)}] earliest ETA first, no ETA last
+      poOrders.forEach(o=>{ const left=new Map(); o.leftover.forEach((q,c)=>{ if(subToKits.has(c)&&q>0) left.set(c,q); });
+        if(!left.size) return; if(!poLeft.has(o.shipTo)) poLeft.set(o.shipTo,[]); poLeft.get(o.shipTo).push({no:o.no, eta:o.eta, left}); });
+      poLeft.forEach(l=>l.sort((a,b)=>(a.eta||"9999").localeCompare(b.eta||"9999")||a.no.localeCompare(b.no)));
+
+      // greedy set forming over several sources; sources are consumed in the order given
+      function formSets(sources, needBoth){
+        const avail=sub=>sources.reduce((t,src)=>t+(src.map.get(sub)||0),0);
+        const cand=[]; kits.forEach(k=>{
+          if(!k.subs.every(sb=>avail(sb.sub)>=sb.q)) return;
+          if(needBoth && !needBoth(k)) return;
+          cand.push({k, stockParts:k.subs.filter(sb=>sources.some(src=>src.stock && (src.map.get(sb.sub)||0)>0)).length});
+        });
+        cand.sort((a,b)=>b.stockParts-a.stockParts || b.k.subs.length-a.k.subs.length || a.k.kit.localeCompare(b.k.kit));
+        const made=[];
+        cand.forEach(({k})=>{
+          let n=Infinity; k.subs.forEach(sb=>{ n=Math.min(n,Math.floor(avail(sb.sub)/sb.q)); });
+          if(!(n>0)||!isFinite(n)) return;
+          if(needBoth && !needBoth(k)) return;
+          const parts=[];
+          k.subs.forEach(sb=>{ let need=n*sb.q;
+            sources.forEach(src=>{ if(need<=0) return; const have=src.map.get(sb.sub)||0; const t=Math.min(have,need);
+              if(t>0){ src.map.set(sb.sub,have-t); need-=t; parts.push({sku:sb.sub, qty:t, src:src.id, eta:src.eta, stock:!!src.stock}); } });
+          });
+          made.push({kit:k.kit, name:k.name, pl:k.pl, sets:n, parts});
+        });
+        return made;
+      }
+      const has=(map,k)=>k.subs.some(sb=>(map.get(sb.sub)||0)>0);
+
+      // 1 damaged packaging
+      warehouses.filter(w=>whGroup(w)==="DP").forEach(dp=>{
+        const main=dp.replace(/-DP$/i,""); if(!stockLeft.has(dp)||!stockLeft.has(main)) return;
+        const D=stockLeft.get(dp), M=stockLeft.get(main);
+        formSets([{id:dp,map:D,stock:true},{id:main,map:M,stock:true}], k=>has(D,k)&&has(M,k))
+          .forEach(x=>looseNotes.push({cat:"damaged", wh:main, dp, ...x}));
+      });
+      // 2 stock + on order in the same warehouse
+      const whs2=new Set([...poLeft.keys()]);
+      whs2.forEach(wh=>{
+        const srcs=[]; if(stockLeft.has(wh) && whGroup(wh)==="MAIN") srcs.push({id:wh,map:stockLeft.get(wh),stock:true});
+        poLeft.get(wh).forEach(p=>srcs.push({id:p.no,map:p.left,eta:p.eta||""}));
+        formSets(srcs, k=>srcs.filter(sr=>has(sr.map,k)).length>=2)       // only combinations across sources are new
+          .forEach(x=>{ const pp=x.parts.filter(q=>!q.stock);
+            const eta = pp.some(q=>!q.eta) ? "" : pp.reduce((m,q)=>q.eta>m?q.eta:m,"");
+            looseNotes.push({cat:"onorder", wh, eta, etaTBD:pp.some(q=>!q.eta), ...x}); });
+      });
+      // 3 same city, other main warehouse -> transfer?
+      const city=w=>String(w).toUpperCase().split("-")[0];
+      const mains=[...stockLeft.keys()].filter(w=>whGroup(w)==="MAIN").sort(whCmp);
+      mains.forEach((w1,i)=>mains.slice(i+1).forEach(w2=>{
+        if(city(w1)!==city(w2)) return;
+        const A=stockLeft.get(w1), B=stockLeft.get(w2);
+        formSets([{id:w1,map:A,stock:true},{id:w2,map:B,stock:true}], k=>has(A,k)&&has(B,k))
+          .forEach(x=>looseNotes.push({cat:"transfer", wh:w1, wh2:w2, ...x}));
+      }));
+      // 4 + 5 what is still unpaired
+      const kitsOf=c=>[...(subToKits.get(c)||[])].map(kc=>kits.get(kc));
+      const needs=c=>{ const ks=kitsOf(c); if(!ks.length||ks.length>3) return {fits:ks.length};
+        return {needs:ks.map(k=>k.subs.filter(sb=>sb.sub!==c).map(sb=>sb.sub).join(" + "))}; };
+      [...stockLeft.keys()].sort(whCmp).forEach(wh=>{
+        const bySmp={sample:[], short:[]};
+        stockLeft.get(wh).forEach((q,c)=>{ if(q>0) (plSku(c)==="SMP"?bySmp.sample:bySmp.short).push({sku:c, qty:q, ...needs(c)}); });
+        ["sample","short"].forEach(cat=>{
+          const byPl=new Map(); bySmp[cat].forEach(it=>{ const pl=plSku(it.sku); if(!byPl.has(pl)) byPl.set(pl,[]); byPl.get(pl).push(it); });
+          byPl.forEach((items,pl)=>looseNotes.push({cat, wh, pl, items:items.sort((a,b)=>a.sku.localeCompare(b.sku))}));
+        });
+      });
+      poLeft.forEach((list,wh)=>{
+        const agg=new Map(); list.forEach(p=>p.left.forEach((q,c)=>{ if(!(q>0)) return; if(!agg.has(c)) agg.set(c,{sku:c,qty:0,pos:[]}); const a=agg.get(c); a.qty+=q; a.pos.push(p.no); }));
+        const byPl=new Map(); agg.forEach(it=>{ Object.assign(it,needs(it.sku)); const pl=plSku(it.sku); if(!byPl.has(pl)) byPl.set(pl,[]); byPl.get(pl).push(it); });
+        byPl.forEach((items,pl)=>looseNotes.push({cat:"short", wh, pl, onOrder:true, items:items.sort((a,b)=>a.sku.localeCompare(b.sku))}));
+      });
+      // partly received purchase orders: open lines of orders that already had a receipt
+      poOrders.forEach(o=>{ if(!(o.received>0) || !(o.total>0)) return;
+        const byPl=new Map(); o.qty.forEach((q,c)=>{ if(!(q>0)) return; const pl=plSku(c); if(!byPl.has(pl)) byPl.set(pl,[]);
+          byPl.get(pl).push({sku:c, unrec:q, tot:o.ordered.get(c)||q}); });
+        byPl.forEach((items,pl)=>looseNotes.push({cat:"partial", wh:o.shipTo, pl, po:o.no, eta:o.eta, items:items.sort((a,b)=>a.sku.localeCompare(b.sku))}));
+      });
+    }
+
     /* ---------- Rows ---------- */
     const rows=[]; // {type:'kit'|'item'|'loose', sku, name, pl, qty:{wh}, po:{orderNo}, children?}
     kits.forEach(k=>{
@@ -487,7 +595,7 @@ const InvEngine = (function(){
       rows.push({type:"item", sku:code, name:poName.get(code)||"", pl:plOfCode(code), qty:{}, po:per, poOnly:true}); });
 
     const productLines=[...new Set(rows.map(r=>r.pl))].sort((a,b)=>(PL_RANK[a]||99)-(PL_RANK[b]||99) || a.localeCompare(b));
-    return {warehouses, whGroup, productLines, rows, errors, kits, mat, alloc, poOrders, kitRowsDropped,
+    return {warehouses, whGroup, productLines, rows, errors, kits, mat, alloc, poOrders, kitRowsDropped, looseNotes,
       stats:{materials:mat.size, kits:kits.size, sohTotal:[...mat.values()].reduce((s,m)=>s+m.total,0)}};
   }
 
@@ -953,6 +1061,65 @@ function poHeadLabel(o){
   return eta+(o.shipTo?" · "+o.shipTo:"");
 }
 
+/* ---------- loose-part explanations (engine: looseNotes) ---------- */
+const NOTE_CATS=[
+  {cat:"damaged",  label:"Damaged packaging",                           who:"Logistics, please follow up"},
+  {cat:"onorder",  label:"Can be kitted with goods on order",           who:"no action needed", ok:true},
+  {cat:"transfer", label:"Matching part in another warehouse of the same city", who:"Logistics, please check whether a transfer was made"},
+  {cat:"sample",   label:"Samples without their pair",                  who:"Marketing / Sales, please confirm"},
+  {cat:"short",    label:"Short of the matching part",                  who:"Import, please follow up"},
+  {cat:"partial",  label:"Partly received purchase orders",             who:"Import, please confirm whether goods are in without a receipt doc"},
+];
+const md=d=>d?d.slice(5):"";
+function noteText(n){
+  const X=q=>" ×"+fmt(q);
+  const needTxt=it=>it.needs?` (needs ${it.needs.join(" or ")})`:(it.fits?` (shared part, fits ${it.fits} models)`:"");
+  switch(n.cat){
+    case "damaged": return `${n.kit}${X(n.sets)} — ${n.parts.filter(p=>p.src===n.dp).map(p=>p.sku).join(", ")} in ${n.dp}`;
+    case "onorder": { const po=n.parts.filter(p=>!p.stock), st=n.parts.filter(p=>p.stock);
+      const nos=[...new Set(po.map(p=>p.src))].join(", ");
+      return `${n.kit}${X(n.sets)} — ${st.length?"in stock "+[...new Set(st.map(p=>p.sku))].join(", ")+"; ":""}on order ${[...new Set(po.map(p=>p.sku))].join(", ")} (${nos}, ETA ${n.etaTBD?"not set":md(n.eta)})`; }
+    case "transfer": return `${n.kit}${X(n.sets)} — ${n.parts.map(p=>p.sku+" in "+p.src).join(", ")}`;
+    case "sample": return n.items.map(it=>`${it.sku}${X(it.qty)}`).join(" · ");
+    case "short": return (n.onOrder?"on order, bought unpaired: ":"")+n.items.map(it=>`${it.sku}${X(it.qty)}${needTxt(it)}${it.pos?" ["+it.pos.join(", ")+"]":""}`).join(" · ");
+    case "partial": return `${n.po}${n.eta?" (ETA "+md(n.eta)+")":""}: `+n.items.map(it=>`${it.sku} ${fmt(it.unrec)} of ${fmt(it.tot)} open`).join(" · ");
+  }
+  return "";
+}
+function noteSkus(n){ return [n.kit, n.po, ...(n.parts||[]).map(p=>p.sku), ...(n.items||[]).map(i=>i.sku)].filter(Boolean); }
+function notesFor(pl){
+  const r=state.result; if(!r||!r.looseNotes) return [];
+  const fc=state.colFilter.code.toLowerCase(), q=state.search.toLowerCase();
+  const list=r.looseNotes.filter(n=>n.pl===pl && (!fc||noteSkus(n).some(s=>s.toLowerCase().includes(fc))) && (!q||noteSkus(n).some(s=>s.toLowerCase().includes(q))));
+  return NOTE_CATS.map(c=>{
+    const mine=list.filter(n=>n.cat===c.cat); if(!mine.length) return null;
+    // one line per finding, grouped by warehouse (same order as the columns)
+    const lines=mine.map((n,i)=>({i, sortWh:n.wh||"", wh:n.cat==="transfer"?`${n.wh} ↔ ${n.wh2}`:(n.cat==="partial"?`${n.po} → ${n.wh||"?"}${n.eta?" · ETA "+md(n.eta):""}`:n.wh),
+        text:n.cat==="partial"?noteText(n).replace(/^[^:]*: /,""):noteText(n)}))
+      .sort((a,b)=>InvEngine.whCmp(a.sortWh,b.sortWh)||a.i-b.i);
+    return {...c, lines};
+  }).filter(Boolean);
+}
+
+/* keep the column-title row and the filter row visible when the PAGE scrolls, not only the table:
+   the header cells are sticky inside .tablewrap; once .tablewrap's top slides under the sticky
+   controls bar, their sticky offset is pushed down by the same distance                      */
+function pinHeader(){
+  const wrap=document.querySelector("#report .tablewrap"); if(!wrap) return;
+  const h0=wrap.querySelector("thead tr:first-child"); if(!h0) return;
+  const fr=wrap.querySelector("thead tr.filterrow");
+  const ctl=document.getElementById("controls");
+  const line = ctl && ctl.offsetParent!==null ? ctl.getBoundingClientRect().bottom : 0;
+  const hh=h0.offsetHeight, fh=fr?fr.offsetHeight:0;
+  const inner=wrap.getBoundingClientRect().top + wrap.clientTop;      // top of the scroll area
+  let off=Math.max(0, line-inner);
+  off=Math.min(off, Math.max(0, wrap.clientHeight-hh-fh));           // never below the table's own bottom
+  h0.querySelectorAll("th").forEach(th=>th.style.top=off+"px");
+  if(fr) fr.querySelectorAll("th").forEach(th=>th.style.top=(off+hh)+"px");
+}
+window.addEventListener("scroll",pinHeader,{passive:true});
+window.addEventListener("resize",pinHeader);
+
 function visibleModel(){
   const r=state.result; const whs=selWarehouses(); const q=state.search.toLowerCase();
   const fc=state.colFilter.code.toLowerCase(), fn=state.colFilter.name.toLowerCase();
@@ -1036,6 +1203,13 @@ function renderReport(){
         ${whs.map(w=>`<td class="num">${fmt(tot(g.loose,w))}</td>`).join("")}<td class="num">${fmt(g.loose.reduce((s,x)=>s+sumSel(x.qty),0))}</td>${poTotCells(g.loose)}</tr>`;
       g.loose.forEach(x=>html+=line(x,"loose"));
     }
+    const nt=notesFor(g.pl);
+    if(nt.length){
+      html+=`<tr class="loose-note"><td colspan="${whs.length+3+pos.length+(pos.length?1:0)}"><div class="ln">`
+        + nt.map(c=>`<div class="c${c.ok?" ok":""}"><b>${esc(c.label)}</b><span class="who">${esc(c.who)}</span><ul>`
+            + c.lines.map(l=>`<li><b>${esc(l.wh)}</b>: <span class="m">${esc(l.text)}</span></li>`).join("")+`</ul></div>`).join("")
+        + `</div></td></tr>`;
+    }
   });
   if(!groups.length){
     const noMatch = state.colFilter.code || state.colFilter.name || state.search;
@@ -1045,8 +1219,7 @@ function renderReport(){
   el.innerHTML=html;
 
   // stack the filter row directly beneath the sticky header
-  const h0=el.querySelector("thead tr:first-child");
-  if(h0){ const top=h0.offsetHeight+"px"; el.querySelectorAll("tr.filterrow th").forEach(th=>th.style.top=top); }
+  pinHeader();
 
   el.querySelectorAll("tr.filterrow input").forEach(inp=>{
     inp.addEventListener("input",()=>{ state.colFilter[inp.dataset.cf]=inp.value; state._focus=inp.dataset.cf; renderReport(); });
@@ -1177,8 +1350,7 @@ function renderReservations(el){
   html+=`</tbody></table></div><div class="rowcount">${footer} · kitted by BOM (shortage ignored) · Expiration = Date Required + 15 days · today ${new Date().toISOString().slice(0,10)}</div>`;
   el.innerHTML=html;
 
-  const h0=el.querySelector("thead tr:first-child");
-  if(h0){ const top=h0.offsetHeight+"px"; el.querySelectorAll("tr.filterrow th").forEach(th=>th.style.top=top); }
+  pinHeader();
   el.querySelectorAll("tr.filterrow input").forEach(inp=>{
     inp.addEventListener("input",()=>{ state.rvCol[inp.dataset.rf]=inp.value; state._rvFocus=inp.dataset.rf; renderReport(); });
     inp.addEventListener("focus",()=>{ state._rvFocus=inp.dataset.rf; });
@@ -1270,6 +1442,15 @@ document.getElementById("btn-export").onclick=async()=>{
   ws.columns=[{width:11},{width:14},{width:30},{width:10},...whs.map(()=>({width:11})),{width:10},
     ...(pos.length?[...pos.map(()=>({width:18})),{width:14}]:[])];
   ws.views=[{state:"frozen",xSplit:3,ySplit:1}];
+  const ln=wb.addWorksheet("Loose parts notes");
+  ["Product Line","Category","Action","Warehouse","Detail"].forEach((h,i)=>{ const c=ln.getCell(1,i+1); c.value=h;
+    c.font={name:"Arial",bold:true,color:{argb:"FFFFFFFF"},size:10}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0E3B2E"}}; });
+  let lr=2;
+  groups.forEach(g=>notesFor(g.pl).forEach(c=>c.lines.forEach(l=>{
+    [g.pl,c.label,c.who,l.wh,l.text].forEach((v,i)=>{ const x=ln.getCell(lr,i+1); x.value=v; x.font={name:"Arial",size:9}; x.alignment={wrapText:i===4,vertical:"top"}; });
+    lr++; })));
+  ln.columns=[{width:11},{width:34},{width:40},{width:20},{width:110}];
+  ln.views=[{state:"frozen",ySplit:1}];
   const meta=(state.cloud&&state.cloud.meta)||{};
   const notes=wb.addWorksheet("Notes"); notes.getColumn(1).width=110;
   [["GREE México — Inventory Report (Stock on Hand minus reservation)",true],
