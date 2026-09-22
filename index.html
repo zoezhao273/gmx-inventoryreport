@@ -35,9 +35,21 @@ body{font-size:13.5px;line-height:1.45}
 .asof b{color:#fff;font-weight:600}
 .asof .warn{color:#f3c96b}
 
-.shell{max-width:1500px;margin:0 auto;padding:0 20px 60px}
+.shell{max-width:1500px;margin:0 auto;padding:0 20px 8px}
+/* app shell: title bar + controls always on screen, only the table scrolls (up/down and sideways);
+   the table header sticks to the top of the table, so it is visible whatever the scroll position */
+html,body{height:100%}
+body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+.appbar{flex:none}
+.shell{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column}
+.controls,#banner{flex:none}
+#report{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+#report>.rowcount,#report>.emptystate{flex:none}
+.bar-r{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+/* small screens: the controls may wrap into many lines — let them scroll on their own, capped */
+@media (max-width:640px){ .controls{max-height:38vh;overflow:auto;overscroll-behavior:contain} }
 
-.controls{position:sticky;top:0;z-index:20;background:var(--paper);padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.controls{background:var(--paper);padding:14px 0 10px;border-bottom:1px solid var(--line)}
 .ctl-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .ctl-row:last-child{margin-bottom:0}
 .ctl-label{font-size:11.5px;color:var(--ink-3);width:92px;flex:none}
@@ -61,7 +73,7 @@ button.small{padding:5px 11px;font-size:11.5px}
 .banner.warn{background:var(--amber-bg);border-color:#e6c98a;color:#6b4a0e}
 .banner.err{background:var(--rust-bg);border-color:#e9b1a5;color:var(--rust)}
 
-.tablewrap{margin-top:14px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:#fff;max-height:78vh}
+.tablewrap{margin-top:12px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:#fff;flex:1 1 auto;min-height:120px;overscroll-behavior:contain}
 table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
 th,td{padding:6px 10px;border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);white-space:nowrap}
 th{background:var(--hd);color:#fff;font-weight:600;text-align:left;position:sticky;top:0;z-index:3}
@@ -99,6 +111,9 @@ tr.filterrow input{width:100%;box-sizing:border-box;font-family:inherit;font-siz
 tr.filterrow input:focus{outline:2px solid var(--g-700);outline-offset:0}
 .caret{display:inline-block;width:12px;font-size:9px;color:var(--ink-3);margin-right:4px;transition:transform .12s}
 tr.kit.open .caret{transform:rotate(90deg)}
+tr.pl-head,tr.loose-head{cursor:pointer;user-select:none}
+tr.pl-head .caret,tr.loose-head .caret{color:inherit;opacity:.7}
+tr.pl-head.open .caret,tr.loose-head.open .caret{transform:rotate(90deg)}
 .tag{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:9px;margin-left:6px;vertical-align:1px}
 .tag.kit{background:var(--g-100);color:var(--g-800)}
 .tag.loose{background:var(--amber-bg);color:var(--amber)}
@@ -107,7 +122,15 @@ tr.kit.open .caret{transform:rotate(90deg)}
 .rowcount{font-size:11.5px;color:var(--ink-3);margin:10px 0 0}
 .emptystate{padding:40px;text-align:center;color:var(--ink-3)}
 
-details.admin{margin-top:28px;border:1px solid var(--line);border-radius:var(--radius);background:#fff}
+details.admin{position:relative}
+details.admin>summary{padding:6px 12px!important;font-size:12px!important;border-radius:5px;background:rgba(255,255,255,.08);color:#fff!important;border:1px solid rgba(255,255,255,.35)}
+details.admin[open]>summary{background:#fff;color:var(--g-900)!important}
+/* "Update data" opens as a panel over the report, with its own scroll */
+details.admin>.admin-body{position:fixed;z-index:50;top:var(--bar-h,70px);right:20px;width:min(1100px,calc(100vw - 40px));
+  max-height:calc(100vh - var(--bar-h,70px) - 20px);overflow:auto;overscroll-behavior:contain;background:#fff;color:var(--ink);
+  border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 12px 32px rgba(0,0,0,.18);padding-top:12px}
+.admin-hint{font-size:12px;color:var(--ink-3);margin-bottom:10px}
+details.admin:not([open])>.admin-body{display:none}
 details.admin summary{cursor:pointer;padding:12px 16px;font-weight:600;color:var(--g-900);font-size:13px;list-style:none;display:flex;justify-content:space-between;align-items:center}
 details.admin summary::-webkit-details-marker{display:none}
 details.admin summary .hint{font-weight:400;color:var(--ink-3);font-size:12px}
@@ -126,7 +149,7 @@ details.admin summary .hint{font-weight:400;color:var(--ink-3);font-size:12px}
 .pinrow input{font-family:inherit;font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;width:160px}
 .status{font-size:12px;color:var(--ink-2)}
 .status.err{color:var(--rust)} .status.ok{color:var(--g-800)}
-footer{max-width:1500px;margin:36px auto 16px;padding:0 20px;font-size:11px;color:var(--ink-3)}
+footer{flex:none;margin:6px 0 0;font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}
 
 /* ---------- view switch ---------- */
 .viewtabs{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--line);border-radius:20px;overflow:hidden;width:max-content;background:#fff}
@@ -183,7 +206,7 @@ td.posum{background:#edf3f0;font-weight:600}
 tr.child td.po{background:#f2f5f9}
 tr.loose td.po{background:#f8f4ec}
 
-@media (max-width:640px){ .ctl-label{width:100%} .search{width:100%;margin-left:0} .appbar{padding:12px 14px} .shell{padding:0 10px 40px} }
+@media (max-width:640px){ .ctl-label{width:100%} .search{width:100%;margin-left:0} .appbar{padding:12px 14px} .shell{padding:0 10px 6px} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
 </style>
 </head>
@@ -195,7 +218,51 @@ tr.loose td.po{background:#f8f4ec}
     <h1>Inventory Report</h1>
     <div class="sub">Stock on Hand (minus reservation), kitted per warehouse by BOM</div>
   </div>
-  <div class="asof" id="asof">Loading cloud data…</div>
+  <div class="bar-r">
+    <div class="asof" id="asof">Loading cloud data…</div>
+  <details class="admin" id="admin">
+    <summary title="Finance only · Stock on Hand, Purchase Orders, Stock Aging and Reservation daily, BOM when it changes">Update data</summary>
+    <div class="admin-body">
+      <div class="admin-hint">Finance only · Stock on Hand, Purchase Orders, Stock Aging and Reservation daily, BOM when it changes</div>
+      <div class="pinrow">
+        <label for="pin">Upload PIN</label><input id="pin" type="password" autocomplete="off">
+        <span class="status" id="pin-status">Each file is checked locally first; “Publish” replaces the cloud copy that the sales team sees.</span>
+      </div>
+      <div class="dz-grid">
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="soh">
+          <div class="t">Stock on Hand (Minus Reservation)</div><div class="h">Daily · quantities by warehouse</div>
+          <div class="st" id="st-soh">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="soh" disabled>Publish to cloud</button><span class="status" id="ps-soh"></span></div>
+        </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="po">
+          <div class="t">Purchase Order list</div><div class="h">Daily · needs the <b>Unreceived Qty</b> column</div>
+          <div class="st" id="st-po">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="po" disabled>Publish to cloud</button><span class="status" id="ps-po"></span></div>
+        </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="reserv">
+          <div class="t">Lock Stock Reservation Report</div><div class="h">Daily · stock already promised to customers</div>
+          <div class="st" id="st-reserv">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="reserv" disabled>Publish to cloud</button><span class="status" id="ps-reserv"></span></div>
+        </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="aging">
+          <div class="t">Stock Aging Alert Analysis</div><div class="h">Daily · drives which kits get short shared parts</div>
+          <div class="st" id="st-aging">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="aging" disabled>Publish to cloud</button><span class="status" id="ps-aging"></span></div>
+        </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="bom">
+          <div class="t">BOM Checking Report</div><div class="h">Occasional · kit structure</div>
+          <div class="st" id="st-bom">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="bom" disabled>Publish to cloud</button><span class="status" id="ps-bom"></span></div>
+        </div>
+      </div>
+      <div class="pinrow" style="margin-top:14px">
+        <button class="act ghost small" id="btn-preview" disabled>Preview with local files</button>
+        <button class="act ghost small" id="btn-reload">Reload from cloud</button>
+        <span class="status" id="admin-status"></span>
+      </div>
+    </div>
+  </details>
+  </div>
 </div>
 
 <div class="shell">
@@ -241,52 +308,11 @@ tr.loose td.po{background:#f8f4ec}
 
   <div id="banner"></div>
   <div id="report"><div class="emptystate">Loading…</div></div>
+  <footer title="GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden · On-order columns show the unreceived qty of each open PO, kitted inside that PO only">GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden · On-order columns show the unreceived qty of each open PO, kitted inside that PO only</footer>
 
-  <details class="admin" id="admin">
-    <summary><span>Update data</span><span class="hint">Finance only · Stock on Hand, Purchase Orders, Stock Aging and Reservation daily, BOM when it changes</span></summary>
-    <div class="admin-body">
-      <div class="pinrow">
-        <label for="pin">Upload PIN</label><input id="pin" type="password" autocomplete="off">
-        <span class="status" id="pin-status">Each file is checked locally first; “Publish” replaces the cloud copy that the sales team sees.</span>
-      </div>
-      <div class="dz-grid">
-        <div class="dz"><input type="file" accept=".xlsx" data-ds="soh">
-          <div class="t">Stock on Hand (Minus Reservation)</div><div class="h">Daily · quantities by warehouse</div>
-          <div class="st" id="st-soh">Drop or click to choose the .xlsx</div>
-          <div class="pub"><button class="act small" data-pub="soh" disabled>Publish to cloud</button><span class="status" id="ps-soh"></span></div>
-        </div>
-        <div class="dz"><input type="file" accept=".xlsx" data-ds="po">
-          <div class="t">Purchase Order list</div><div class="h">Daily · needs the <b>Unreceived Qty</b> column</div>
-          <div class="st" id="st-po">Drop or click to choose the .xlsx</div>
-          <div class="pub"><button class="act small" data-pub="po" disabled>Publish to cloud</button><span class="status" id="ps-po"></span></div>
-        </div>
-        <div class="dz"><input type="file" accept=".xlsx" data-ds="reserv">
-          <div class="t">Lock Stock Reservation Report</div><div class="h">Daily · stock already promised to customers</div>
-          <div class="st" id="st-reserv">Drop or click to choose the .xlsx</div>
-          <div class="pub"><button class="act small" data-pub="reserv" disabled>Publish to cloud</button><span class="status" id="ps-reserv"></span></div>
-        </div>
-        <div class="dz"><input type="file" accept=".xlsx" data-ds="aging">
-          <div class="t">Stock Aging Alert Analysis</div><div class="h">Daily · drives which kits get short shared parts</div>
-          <div class="st" id="st-aging">Drop or click to choose the .xlsx</div>
-          <div class="pub"><button class="act small" data-pub="aging" disabled>Publish to cloud</button><span class="status" id="ps-aging"></span></div>
-        </div>
-        <div class="dz"><input type="file" accept=".xlsx" data-ds="bom">
-          <div class="t">BOM Checking Report</div><div class="h">Occasional · kit structure</div>
-          <div class="st" id="st-bom">Drop or click to choose the .xlsx</div>
-          <div class="pub"><button class="act small" data-pub="bom" disabled>Publish to cloud</button><span class="status" id="ps-bom"></span></div>
-        </div>
-      </div>
-      <div class="pinrow" style="margin-top:14px">
-        <button class="act ghost small" id="btn-preview" disabled>Preview with local files</button>
-        <button class="act ghost small" id="btn-reload">Reload from cloud</button>
-        <span class="status" id="admin-status"></span>
-      </div>
-    </div>
-  </details>
 
 </div>
 
-<footer>GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden · On-order columns show the unreceived qty of each open PO, kitted inside that PO only</footer>
 
 <!-- ==================== ENGINE ==================== -->
 <script>
@@ -430,6 +456,7 @@ const InvEngine = (function(){
       buckets.set(m,keep);
     });
 
+    const errors=[];
     /* ---------- Kitting per warehouse ---------- */
     const kitQty=new Map();   // kit -> {wh:n}
     const loose=new Map();    // sub -> {wh:n}
@@ -444,7 +471,9 @@ const InvEngine = (function(){
       kits.forEach(k=>{
         const b=buckets.get(k.main);
         if(b && b.length) b.forEach(x=>queue.push({kit:k, days:x.days, cap:x.qty}));
-        else queue.push({kit:k, days:-1, cap:Infinity});
+        // aging only decides the ORDER, never the amount: stock not covered by an aging record
+        // (aging total < SOH, e.g. freshly received goods) is still kitted, ranked last
+        queue.push({kit:k, days:-1, cap:Infinity});
       });
       queue.sort((a,b)=> (b.days-a.days) || a.kit.kit.localeCompare(b.kit.kit));
       queue.forEach(e=>{
@@ -457,10 +486,12 @@ const InvEngine = (function(){
         (alloc.get(k.kit)[wh]=alloc.get(k.kit)[wh]||[]).push({days:e.days,qty:n});
       });
       rem.forEach((v,sub)=>{ if(v>0){ if(!loose.has(sub)) loose.set(sub,{}); loose.get(sub)[wh]=v; } });
+      // self-check: a kit whose every component is still loose here should never happen
+      kits.forEach(k=>{ const n=Math.min(...k.subs.map(s=>Math.floor(rem.get(s.sub)/s.q)));
+        if(n>0) errors.push(`${k.kit} @ ${wh}: ${n} set(s) left unkitted — all components still loose`); });
     });
 
     /* ---------- Reconciliation ---------- */
-    const errors=[];
     subToKits.forEach((ks,sub)=>{
       const m=mat.get(sub); if(!m) return;
       warehouses.forEach(wh=>{
@@ -771,7 +802,7 @@ const PARSERS={soh:parseSOH, aging:parseAging, bom:parseBOM, reserv:parseReserv,
 /* ---------- state ---------- */
 const DATASETS=["soh","aging","bom","reserv","po"];
 const state={ cloud:null, local:{}, localFiles:{}, result:null, rvResult:null,
-  view:"stock", selPL:new Set(["RAC"]), selWH:new Set(["MAIN"]), showPO:false, search:"", previewing:false, openKits:new Set(), colFilter:{code:"",name:""}, _focus:null,
+  view:"stock", selPL:new Set(["RAC"]), selWH:new Set(["MAIN"]), showPO:false, search:"", previewing:false, openKits:new Set(), closedPL:new Set(), closedLoose:new Set(), colFilter:{code:"",name:""}, _focus:null,
   rvSel:{status:new Set(["ALL"]), branch:new Set(["ALL"]), sm:"ALL"}, rvSearch:"", rvCol:{code:"",name:"",wh:"",req:"",eta:"",exp:""}, _rvFocus:null, openDocs:new Set(), openKitRows:new Set(), rvOpenInit:false, viewTouched:false };
 
 function datasetsInUse(){
@@ -1064,11 +1095,12 @@ function poHeadLabel(o){
 /* ---------- loose-part explanations (engine: looseNotes) ---------- */
 const NOTE_CATS=[
   {cat:"damaged",  label:"Damaged packaging",                           who:"Logistics, please follow up"},
-  {cat:"onorder",  label:"Can be kitted with goods on order",           who:"no action needed", ok:true},
   {cat:"transfer", label:"Matching part in another warehouse of the same city", who:"Logistics, please check whether a transfer was made"},
   {cat:"sample",   label:"Samples without their pair",                  who:"Marketing / Sales, please confirm"},
   {cat:"short",    label:"Short of the matching part",                  who:"Import, please follow up"},
   {cat:"partial",  label:"Partly received purchase orders",             who:"Import, please confirm whether goods are in without a receipt doc"},
+  // display order only (the engine still matches stock + on order before anything else); no-action items last
+  {cat:"onorder",  label:"Can be kitted with goods on order",           who:"no action needed", ok:true},
 ];
 const md=d=>d?d.slice(5):"";
 function noteText(n){
@@ -1101,24 +1133,20 @@ function notesFor(pl){
   }).filter(Boolean);
 }
 
-/* keep the column-title row and the filter row visible when the PAGE scrolls, not only the table:
-   the header cells are sticky inside .tablewrap; once .tablewrap's top slides under the sticky
-   controls bar, their sticky offset is pushed down by the same distance                      */
+/* only the table scrolls; its two header rows stick to the top of the table */
 function pinHeader(){
+  const bar=document.querySelector(".appbar"); if(bar) document.documentElement.style.setProperty("--bar-h", bar.getBoundingClientRect().bottom+"px");
   const wrap=document.querySelector("#report .tablewrap"); if(!wrap) return;
   const h0=wrap.querySelector("thead tr:first-child"); if(!h0) return;
   const fr=wrap.querySelector("thead tr.filterrow");
-  const ctl=document.getElementById("controls");
-  const line = ctl && ctl.offsetParent!==null ? ctl.getBoundingClientRect().bottom : 0;
-  const hh=h0.offsetHeight, fh=fr?fr.offsetHeight:0;
-  const inner=wrap.getBoundingClientRect().top + wrap.clientTop;      // top of the scroll area
-  let off=Math.max(0, line-inner);
-  off=Math.min(off, Math.max(0, wrap.clientHeight-hh-fh));           // never below the table's own bottom
-  h0.querySelectorAll("th").forEach(th=>th.style.top=off+"px");
-  if(fr) fr.querySelectorAll("th").forEach(th=>th.style.top=(off+hh)+"px");
+  h0.querySelectorAll("th").forEach(th=>th.style.top="0px");
+  if(fr) fr.querySelectorAll("th").forEach(th=>th.style.top=h0.offsetHeight+"px");
 }
-window.addEventListener("scroll",pinHeader,{passive:true});
 window.addEventListener("resize",pinHeader);
+document.getElementById("admin").addEventListener("toggle",pinHeader);
+// the panel floats over the report: a click anywhere outside it closes it
+document.addEventListener("click",e=>{ const a=document.getElementById("admin"); if(a&&a.open&&!a.contains(e.target)) a.open=false; });
+
 
 function visibleModel(){
   const r=state.result; const whs=selWarehouses(); const q=state.search.toLowerCase();
@@ -1176,36 +1204,39 @@ function renderReport(){
       ${whs.map(()=>`<th></th>`).join("")}<th></th>${pos.map(()=>`<th></th>`).join("")}${pos.length?`<th></th>`:""}</tr>
     </thead><tbody>`;
   const tot=(list,w)=>list.reduce((s,x)=>s+(x.qty[w]||0),0);
-  const line=(x,cls,extra)=>{ rows++;
+  const line=(x,cls,extra,attr)=>{ rows++;
     const tip = x.type==="loose" ? loosePartners(x) : "";
     const tt = tip ? ` title="${esc(tip)}"` : "";
-    return `<tr class="${cls}" data-sku="${esc(x.sku)}">
+    return `<tr class="${cls}" data-sku="${esc(x.sku)}"${attr||""}>
       <td class="frozen sku mono" style="left:0;${CW(W1)}"${tt}>${extra||""}${esc(x.sku)}</td>
       ${nameCell(x.name, x.type==="kit"?'<span class="tag kit">kit</span>':(x.type==="loose"?'<span class="tag loose">loose</span>':""), tt||` title="${esc(x.name)}"`)}
       ${whs.map(w=>cell(x,w)).join("")}<td class="num"><b>${fmt(sumSel(x.qty))}</b></td>${poCells(x)}</tr>`; };
   groups.forEach(g=>{
-    html+=`<tr class="pl-head"><td class="frozen" style="left:0;${CW(W1)}">${g.pl}</td><td class="frozen cap" style="left:${W1}px;${CW(W2)}">${g.main.length} materials${g.loose.length?` · ${g.loose.length} loose`:""}</td>
+    const plOpen=!state.closedPL.has(g.pl), lsOpen=!state.closedLoose.has(g.pl);
+    html+=`<tr class="pl-head${plOpen?" open":""}" data-pl="${esc(g.pl)}"><td class="frozen" style="left:0;${CW(W1)}"><span class="caret">&#9654;</span>${g.pl}</td><td class="frozen cap" style="left:${W1}px;${CW(W2)}">${g.main.length} materials${g.loose.length?` · ${g.loose.length} loose`:""}</td>
       ${whs.map(w=>`<td class="num">${fmt(tot(g.main,w))}</td>`).join("")}<td class="num">${fmt(g.main.reduce((s,x)=>s+sumSel(x.qty),0))}</td>${poTotCells(g.main)}</tr>`;
+    // folding a section only hides rows (no re-render), so the table keeps its scroll position
+    const gA=` data-g="${esc(g.pl)}"`, hideMain=plOpen?"":` style="display:none"`, hideLoose=lsOpen?"":` style="display:none"`;
     g.main.forEach(x=>{
       if(x.type==="kit"){
         const open=state.openKits.has(x.sku);
-        html+=line(x,"kit"+(open?" open":""),`<span class="caret">&#9654;</span>`);
+        html+=line(x,"kit"+(open?" open":""),`<span class="caret">&#9654;</span>`, gA+` data-sec="main"`+hideMain);
         x.children.forEach(c=>{
-          html+=`<tr class="child" data-parent="${esc(x.sku)}" style="${open?"":"display:none"}">
+          html+=`<tr class="child" data-parent="${esc(x.sku)}"${gA} style="${open&&plOpen?"":"display:none"}">
             <td class="frozen sku mono" style="left:0;${CW(W1)}">${esc(c.sku)}</td>
             ${nameCell(c.name, c.q!==1?`<span class="tag q">×${c.q}</span>`:"", ` title="${esc(c.name)}"`)}
             ${whs.map(w=>`<td class="num${c.qty[w]?"":" zero"}">${fmt(c.qty[w])}</td>`).join("")}<td class="num">${fmt(selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0))}</td>${poCells(c)}</tr>`;
         });
-      } else html+=line(x,"item");
+      } else html+=line(x,"item","",gA+` data-sec="main"`+hideMain);
     });
     if(g.loose.length){
-      html+=`<tr class="loose-head"><td class="frozen" style="left:0;${CW(W1)}">Loose parts</td><td class="frozen cap" style="left:${W1}px;${CW(W2)}">on hand but not kittable here${pos.length?"<br>on order: bought unpaired":""}</td>
+      html+=`<tr class="loose-head${lsOpen?" open":""}" data-pl="${esc(g.pl)}"><td class="frozen" style="left:0;${CW(W1)}"><span class="caret">&#9654;</span>Loose parts</td><td class="frozen cap" style="left:${W1}px;${CW(W2)}">on hand but not kittable here${pos.length?"<br>on order: bought unpaired":""}</td>
         ${whs.map(w=>`<td class="num">${fmt(tot(g.loose,w))}</td>`).join("")}<td class="num">${fmt(g.loose.reduce((s,x)=>s+sumSel(x.qty),0))}</td>${poTotCells(g.loose)}</tr>`;
-      g.loose.forEach(x=>html+=line(x,"loose"));
+      g.loose.forEach(x=>html+=line(x,"loose","",gA+` data-sec="loose"`+hideLoose));
     }
     const nt=notesFor(g.pl);
     if(nt.length){
-      html+=`<tr class="loose-note"><td colspan="${whs.length+3+pos.length+(pos.length?1:0)}"><div class="ln">`
+      html+=`<tr class="loose-note"${gA} data-sec="loose"${g.loose.length?hideLoose:""}><td colspan="${whs.length+3+pos.length+(pos.length?1:0)}"><div class="ln">`
         + nt.map(c=>`<div class="c${c.ok?" ok":""}"><b>${esc(c.label)}</b><span class="who">${esc(c.who)}</span><ul>`
             + c.lines.map(l=>`<li><b>${esc(l.wh)}</b>: <span class="m">${esc(l.text)}</span></li>`).join("")+`</ul></div>`).join("")
         + `</div></td></tr>`;
@@ -1228,6 +1259,22 @@ function renderReport(){
   if(state._focus){ const f=el.querySelector(`tr.filterrow input[data-cf="${state._focus}"]`);
     if(f){ f.focus(); const v=f.value; try{ f.setSelectionRange(v.length,v.length); }catch(_){} } }
 
+  // product-line and loose-parts sections: click the header row to fold / unfold (default open)
+  // product line folds only its kits / items; Loose parts folds its rows + notes — independent of each other
+  const rowsOf=(pl,sec)=>[...el.querySelectorAll(`tr[data-g="${CSS.escape(pl)}"][data-sec="${sec}"]`)];
+  el.querySelectorAll("tr.pl-head").forEach(tr=>tr.onclick=()=>{
+    const pl=tr.dataset.pl, open=state.closedPL.has(pl);
+    if(open) state.closedPL.delete(pl); else state.closedPL.add(pl);
+    tr.classList.toggle("open",open);
+    rowsOf(pl,"main").forEach(r=>{ r.style.display=open?"":"none";
+      el.querySelectorAll(`tr.child[data-parent="${CSS.escape(r.dataset.sku)}"]`).forEach(c=>c.style.display=(open&&r.classList.contains("open"))?"":"none"); });
+  });
+  el.querySelectorAll("tr.loose-head").forEach(tr=>tr.onclick=()=>{
+    const pl=tr.dataset.pl, open=state.closedLoose.has(pl);
+    if(open) state.closedLoose.delete(pl); else state.closedLoose.add(pl);
+    tr.classList.toggle("open",open);
+    rowsOf(pl,"loose").forEach(r=>r.style.display=open?"":"none");
+  });
   el.querySelectorAll("tr.kit td.sku").forEach(td=>td.onclick=()=>{
     const tr=td.parentElement, sku=tr.dataset.sku, open=!tr.classList.contains("open");
     tr.classList.toggle("open",open); if(open) state.openKits.add(sku); else state.openKits.delete(sku);
@@ -1410,6 +1457,7 @@ document.getElementById("btn-expand").onclick=()=>{
   const kits=r.rows.filter(x=>x.type==="kit").map(x=>x.sku);
   const anyClosed=kits.some(k=>!state.openKits.has(k));
   state.openKits = anyClosed ? new Set(kits) : new Set();
+  if(anyClosed) state.closedPL.clear();   // expanding kits inside a folded product line would show nothing
   document.getElementById("btn-expand").textContent = anyClosed ? "Collapse kits" : "Expand kits";
   renderReport();
 };
