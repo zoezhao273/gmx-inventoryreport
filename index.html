@@ -119,6 +119,15 @@ tr.pl-head.open .caret,tr.loose-head.open .caret{transform:rotate(90deg)}
 .tag.loose{background:var(--amber-bg);color:var(--amber)}
 .tag.q{background:#eef2f0;color:var(--ink-2);font-family:'IBM Plex Mono',monospace}
 .zero{color:var(--ink-3)}
+/* ---------- negative on hand ---------- */
+table td.neg{background:var(--rust-bg)!important;color:var(--rust)!important;font-weight:700;cursor:help}
+table td.negk{box-shadow:inset 0 0 0 2px var(--rust);cursor:help}
+table td.negk::before{content:"!";display:inline-block;width:13px;height:13px;line-height:13px;margin-right:4px;text-align:center;
+  border-radius:50%;background:var(--rust);color:#fff;font-size:9.5px;font-weight:700;vertical-align:1px;font-family:'IBM Plex Sans',sans-serif}
+tr.pl-head td.negsum{background:var(--rust-bg)!important;color:var(--rust);box-shadow:inset 0 -3px 0 var(--rust);cursor:help}
+.tag.neg{background:var(--rust);color:#fff;cursor:help}
+.pill .negdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--rust);margin-left:6px;vertical-align:1px}
+.pill.on .negdot{box-shadow:0 0 0 1.5px #fff}
 .rowcount{font-size:11.5px;color:var(--ink-3);margin:10px 0 0}
 .emptystate{padding:40px;text-align:center;color:var(--ink-3)}
 
@@ -997,8 +1006,10 @@ function renderControls(){
   const plEl=document.getElementById("pl-pills");
   const plAllOn=r.productLines.every(pl=>state.selPL.has(pl));
   plEl.innerHTML = r.productLines.map(pl=>{
-    const n=r.rows.filter(x=>x.pl===pl && x.type!=="loose" && sumSel(x.qty)>0).length;
-    return `<button class="pill ${state.selPL.has(pl)?"on":""}" data-pl="${pl}">${pl}<span class="cnt">${n}</span></button>`; }).join(" ")
+    const plRows=r.rows.filter(x=>x.pl===pl && x.type!=="loose");
+    const n=plRows.filter(x=>sumSel(x.qty)>0 || negSel(x)).length;
+    const ng=negSkuCount(negIndex(plRows.filter(negSel), selWarehouses()));
+    return `<button class="pill ${state.selPL.has(pl)?"on":""}" data-pl="${pl}"${ng?` title="${ng} material${ng===1?"":"s"} with negative on hand in the selected warehouses"`:""}>${pl}<span class="cnt">${n}</span>${ng?'<span class="negdot"></span>':""}</button>`; }).join(" ")
     + ` <button class="pill ${plAllOn?"on":""}" data-pl="ALL">All</button>`;
   plEl.querySelectorAll(".pill").forEach(b=>b.onclick=()=>{
     const p=b.dataset.pl;
@@ -1088,6 +1099,30 @@ function renderReservControls(){
 function selWarehouses(){ const r=state.result; return r.warehouses.filter(w=>state.selWH.has(r.whGroup(w))); }
 function orderWh(list){ return list.slice().sort(InvEngine.whCmp); }
 function sumSel(q){ let s=0; selWarehouses().forEach(w=>s+=q[w]||0); return s; }
+/* ---------- negative on hand ----------
+   A negative quantity is never kitted (the engine treats it as 0), so it must be surfaced here:
+   item rows show their own negative cells; a kit row shows a red outline in every warehouse
+   where one of its components is negative (the component itself is red when the kit is opened). */
+const qn=(q,w)=>Number((q&&q[w])||0);
+function negComps(x,w){ return x.type==="kit" ? x.children.filter(c=>qn(c.qty,w)<0) : []; }
+function negSel(x){ const ws=selWarehouses();
+  return ws.some(w=>qn(x.qty,w)<0) || (x.type==="kit" && x.children.some(c=>ws.some(w=>qn(c.qty,w)<0))); }
+/* distinct negative materials of a list of rows in the given warehouses: Map(wh -> Map(sku -> qty)) */
+function negIndex(list, whs){
+  const out=new Map();
+  const add=(w,sku,q)=>{ if(!out.has(w)) out.set(w,new Map()); out.get(w).set(sku,q); };
+  list.forEach(x=>whs.forEach(w=>{
+    if(qn(x.qty,w)<0) add(w,x.sku,qn(x.qty,w));
+    negComps(x,w).forEach(c=>add(w,c.sku,qn(c.qty,w)));
+  }));
+  return out;
+}
+function negSkuCount(idx){ const s=new Set(); idx.forEach(m=>m.forEach((_,k)=>s.add(k))); return s.size; }
+function negTip(idx){
+  const N=n=>Math.round(n).toLocaleString("en-US"), L=[];
+  [...idx.keys()].sort(InvEngine.whCmp).forEach(w=>{ [...idx.get(w)].sort((a,b)=>a[1]-b[1]).forEach(([s,q])=>L.push(`${w}  ${s}  ${N(q)}`)); });
+  return "负库存 / negative on hand:\n"+(L.length>15?L.slice(0,15).concat(`…+${L.length-15}`):L).join("\n");
+}
 function poOrdersSel(){
   const r=state.result; if(!r||!r.poOrders) return [];
   return r.poOrders.filter(o=>state.selWH.has(r.whGroup(o.shipTo||"")));
@@ -1239,7 +1274,7 @@ function visibleModel(){
     (!fc || x.sku.toLowerCase().includes(fc)) &&
     (!fn || (x.name||"").toLowerCase().includes(fn));
   const pos = state.showPO ? poOrdersSel() : [];
-  const shown = x => sumSel(x.qty)>0 || (pos.length>0 && poSum(x,pos)>0);
+  const shown = x => sumSel(x.qty)>0 || negSel(x) || (pos.length>0 && poSum(x,pos)>0);
   const groups=[];
   [...state.selPL].sort((a,b)=>(InvEngine.PL_RANK[a]||99)-(InvEngine.PL_RANK[b]||99)).forEach(pl=>{
     const main=r.rows.filter(x=>x.pl===pl && x.type!=="loose" && shown(x) && match(x)).sort((a,b)=>a.sku.localeCompare(b.sku));
@@ -1247,7 +1282,7 @@ function visibleModel(){
     if(main.length||loose.length) groups.push({pl, main, loose});
   });
   // hide warehouse / PO columns that are empty for everything shown
-  const used=whs.filter(w=>groups.some(g=>[...g.main,...g.loose].some(x=>(x.qty[w]||0)>0)));
+  const used=whs.filter(w=>groups.some(g=>[...g.main,...g.loose].some(x=>qn(x.qty,w)!==0 || negComps(x,w).length)));
   const usedPos=pos.filter(o=>groups.some(g=>[...g.main,...g.loose].some(x=>poOf(x,o.no)>0)));
   return {groups, whs:orderWh(used, r.warehouses), pos:usedPos};
 }
@@ -1273,7 +1308,13 @@ function renderReport(){
   const fc2=`${FN?`class="frozen${""}" style="left:${W1}px;`:`style="`}${CW(W2)}"`;
   const nameCell=(name,tagHtml,tip)=>`<td class="${FN?"frozen ":""}nm" style="${FN?`left:${W1}px;`:""}${CW(W2)}"${tip}>`
     +`<span class="t${tagHtml?" tagged":""}">${esc(name)}</span>${tagHtml}</td>`;
-  const cell=(x,w)=>`<td class="num${x.qty[w]?"":" zero"}">${fmt(x.qty[w])}</td>`;
+  const N0=n=>Math.round(n).toLocaleString("en-US");
+  const cell=(x,w)=>{ const v=qn(x.qty,w);
+    if(v<0) return `<td class="num neg" title="${esc(`负库存 / negative on hand\n${x.sku} @ ${w}: ${N0(v)}`)}">${fmt(v)}</td>`;
+    const nc=negComps(x,w);
+    if(nc.length) return `<td class="num negk${v?"":" zero"}" title="${esc(`组件负库存，未参与配套 / component negative, not kitted @ ${w}:\n`+nc.map(c=>`${c.sku}  ${N0(qn(c.qty,w))}`).join("\n"))}">${fmt(v)}</td>`;
+    return `<td class="num${v?"":" zero"}">${fmt(v)}</td>`; };
+  const totCell=(v,bold)=>`<td class="num${v<0?" neg":""}"${v<0?` title="负库存合计 / net negative"`:""}>${bold?`<b>${fmt(v)}</b>`:fmt(v)}</td>`;
   const poCells=x=>pos.map((o,i)=>`<td class="num po${i?"":" pofirst"}${poOf(x,o.no)?"":" zero"}">${fmt(poOf(x,o.no))}</td>`).join("")
     + (pos.length?`<td class="num posum">${fmt(sumSel(x.qty)+poSum(x,pos))}</td>`:"");
   const poTotCells=list=>pos.map((o,i)=>`<td class="num po${i?"":" pofirst"}">${fmt(list.reduce((s,x)=>s+poOf(x,o.no),0))}</td>`).join("")
@@ -1296,11 +1337,18 @@ function renderReport(){
     return `<tr class="${cls}" data-sku="${esc(x.sku)}"${attr||""}>
       <td class="frozen sku mono" style="left:0;${CW(W1)}"${tt}>${extra||""}${esc(x.sku)}</td>
       ${nameCell(x.name, x.type==="kit"?'<span class="tag kit">kit</span>':(x.type==="loose"?'<span class="tag loose">loose</span>':""), tt||` title="${esc(x.name)}"`)}
-      ${whs.map(w=>cell(x,w)).join("")}<td class="num"><b>${fmt(sumSel(x.qty))}</b></td>${poCells(x)}</tr>`; };
+      ${whs.map(w=>cell(x,w)).join("")}${totCell(sumSel(x.qty),true)}${poCells(x)}</tr>`; };
   groups.forEach(g=>{
     const plOpen=!state.closedPL.has(g.pl), lsOpen=!state.closedLoose.has(g.pl);
-    html+=`<tr class="pl-head${plOpen?" open":""}" data-pl="${esc(g.pl)}"><td class="frozen" style="left:0;${CW(W1)}"><span class="caret">&#9654;</span>${g.pl}</td><td class="${FN?"frozen ":""}cap" style="${FN?`left:${W1}px;`:""}${CW(W2)}">${g.main.length} materials${g.loose.length?` · ${g.loose.length} loose`:""}</td>
-      ${whs.map(w=>`<td class="num">${fmt(tot(g.main,w))}</td>`).join("")}<td class="num">${fmt(g.main.reduce((s,x)=>s+sumSel(x.qty),0))}</td>${poTotCells(g.main)}</tr>`;
+    const ni=negIndex(g.main, whs), nNeg=negSkuCount(ni);
+    const negTag=nNeg?`<span class="tag neg" title="${esc(negTip(ni))}">&#9888; ${nNeg} neg</span>`:"";
+    const plWh=w=>{ const m=ni.get(w), v=tot(g.main,w);
+      if(!m) return `<td class="num">${fmt(v)}</td>`;
+      const one=new Map([[w,m]]);
+      return `<td class="num negsum" title="${esc(negTip(one))}">${fmt(v)} <span style="font-size:10px">&#9888;${m.size}</span></td>`; };
+    const plTot=g.main.reduce((s,x)=>s+sumSel(x.qty),0);
+    html+=`<tr class="pl-head${plOpen?" open":""}" data-pl="${esc(g.pl)}"><td class="frozen" style="left:0;${CW(W1)}"><span class="caret">&#9654;</span>${g.pl}${negTag}</td><td class="${FN?"frozen ":""}cap" style="${FN?`left:${W1}px;`:""}${CW(W2)}">${g.main.length} materials${g.loose.length?` · ${g.loose.length} loose`:""}</td>
+      ${whs.map(plWh).join("")}<td class="num${nNeg?" negsum":""}"${nNeg?` title="${esc(negTip(ni))}"`:""}>${fmt(plTot)}</td>${poTotCells(g.main)}</tr>`;
     // folding a section only hides rows (no re-render), so the table keeps its scroll position
     const gA=` data-g="${esc(g.pl)}"`, hideMain=plOpen?"":` style="display:none"`, hideLoose=lsOpen?"":` style="display:none"`;
     g.main.forEach(x=>{
@@ -1311,7 +1359,7 @@ function renderReport(){
           html+=`<tr class="child" data-parent="${esc(x.sku)}"${gA} style="${open&&plOpen?"":"display:none"}">
             <td class="frozen sku mono" style="left:0;${CW(W1)}">${esc(c.sku)}</td>
             ${nameCell(c.name, c.q!==1?`<span class="tag q">×${c.q}</span>`:"", ` title="${esc(c.name)}"`)}
-            ${whs.map(w=>`<td class="num${c.qty[w]?"":" zero"}">${fmt(c.qty[w])}</td>`).join("")}<td class="num">${fmt(selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0))}</td>${poCells(c)}</tr>`;
+            ${whs.map(w=>cell(c,w)).join("")}${totCell(selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0),false)}${poCells(c)}</tr>`;
         });
       } else html+=line(x,"item","",gA+` data-sec="main"`+hideMain);
     });
@@ -1563,10 +1611,12 @@ document.getElementById("btn-export").onclick=async()=>{
     c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0E3B2E"}}; c.alignment={horizontal:"center"}; c.border=border; });
   let r=2;
   const put=(vals,opt={})=>{ vals.forEach((v,i)=>{ const c=ws.getCell(r,i+1); c.value=v==null?"":v; c.font={name:"Arial",size:9,bold:!!opt.bold,color:opt.grey?{argb:"FF6B7570"}:undefined};
-      c.border=border; if(i>=4) c.numFmt="#,##0"; if(opt.fill) c.fill={type:"pattern",pattern:"solid",fgColor:{argb:opt.fill}}; });
+      c.border=border; if(i>=4) c.numFmt="#,##0"; if(opt.fill) c.fill={type:"pattern",pattern:"solid",fgColor:{argb:opt.fill}};
+      if(i>=4 && typeof v==="number" && v<0){ c.font={name:"Arial",size:9,bold:true,color:{argb:"FFB1442F"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFAE4DE"}}; } });
     if(opt.level) ws.getRow(r).outlineLevel=opt.level; r++; };
   groups.forEach(g=>{
-    put([g.pl,"","",`${g.main.length} materials`,...whs.map(w=>g.main.reduce((s,x)=>s+(x.qty[w]||0),0)), g.main.reduce((s,x)=>s+sumSel(x.qty),0), ...poT(g.main)],{bold:true,fill:"FFE4EFEA"});
+    const nNeg=negSkuCount(negIndex(g.main, whs));
+    put([g.pl,nNeg?`⚠ ${nNeg} negative`:"","",`${g.main.length} materials`,...whs.map(w=>g.main.reduce((s,x)=>s+(x.qty[w]||0),0)), g.main.reduce((s,x)=>s+sumSel(x.qty),0), ...poT(g.main)],{bold:true,fill:"FFE4EFEA"});
     g.main.forEach(x=>{
       put([g.pl,x.sku,x.name,x.type==="kit"?"Kit":"",...whs.map(w=>x.qty[w]||0),sumSel(x.qty),...poV(x)],{bold:x.type==="kit"});
       if(x.type==="kit") x.children.forEach(c=>put([g.pl,"  "+c.sku,c.name+(c.q!==1?` ×${c.q}`:""),"component",...whs.map(w=>c.qty[w]||0),selWarehouses().reduce((s,w)=>s+(c.qty[w]||0),0),...poV(c)],{grey:true,level:1}));
@@ -1595,6 +1645,7 @@ document.getElementById("btn-export").onclick=async()=>{
    ["When a shared component is short in a warehouse, kits whose main body is oldest (Stock Aging, FIFO-trimmed to net on hand) are built first; main bodies with no aging record come last.",false],
    ["Loose parts = on hand but not kittable in that warehouse (two-way: unmatched indoor units as well as outdoor units / panels). Shown under the part's own product line.",false],
    ["Component rows under a kit show the raw on-hand quantity, not the allocated quantity. Rows and columns with no stock in the selected warehouses are omitted.",false],
+   ["Negative on hand is shown in red and is never kitted (counted as 0 in that warehouse). Materials whose only stock is negative are still listed; the product-line row shows how many materials are negative.",false],
    ...((state.result.kitRowsDropped||[]).length?[[`Kit materials appearing in the Stock on Hand export are ignored (${state.result.kitRowsDropped.length} rows: ${state.result.kitRowsDropped.map(d=>d.sku).join(", ")}). Any SKUCODE listed as a kit in the BOM Checking Report is dropped from Stock on Hand regardless of its quantity; kit quantities here are computed from the components.`,false]]:[]),
    ...(pos.length?[
      ["",false],
