@@ -40,7 +40,9 @@ body{font-size:13.5px;line-height:1.45}
    the table header sticks to the top of the table, so it is visible whatever the scroll position */
 html,body{height:100%}
 body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
-.appbar{flex:none}
+.appbar{flex:none;transition:margin-top .22s ease,opacity .18s ease}
+/* scrolling the report down slides the title bar away, so the filters sit at the very top */
+body.hdr-away .appbar{margin-top:calc(-1 * var(--bar-full,120px));opacity:0;pointer-events:none}
 .shell{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column}
 .controls,#banner{flex:none}
 #report{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
@@ -367,10 +369,6 @@ body.compact td.nm span.t.tagged{max-width:calc(var(--w2,160px) - 60px)}
         <span id="wh-pills"></span>
         <button class="act ghost small" id="btn-expand" style="margin-left:auto">Expand kits</button>
         <button class="act ghost small" id="btn-export">Export .xlsx</button>
-      </div>
-      <div class="ctl-row" id="po-row" style="display:none">
-        <span class="ctl-label">On order</span>
-        <span id="po-pills"></span>
       </div>
     </div>
 
@@ -1233,31 +1231,27 @@ function renderControls(){
   const whEl=document.getElementById("wh-pills");
   const present=new Set(r.warehouses.map(w=>r.whGroup(w)));
   const groups=WH_GROUPS.filter(g=>present.has(g.id));
-  const allOn=groups.every(g=>state.selWH.has(g.id));
+  // "On order (PO)" sits in the warehouse row, just before All; All lights it too (only when there are open POs)
+  const hasPO=((r.poOrders)||[]).length>0;
+  if(!hasPO) state.showPO=false;
+  const allOn=groups.every(g=>state.selWH.has(g.id)) && (!hasPO || state.showPO);
   // Intransit pill: amber dot when a transfer order needs Logistics, visible even while Intransit is not selected
   const trDot=g=>g.id==="INTRANSIT" && trNeedsFlag();
   whEl.innerHTML = groups.map(g=>`<button class="pill ${state.selWH.has(g.id)?"on":""}" data-wh="${g.id}" title="${esc(r.warehouses.filter(w=>r.whGroup(w)===g.id).join(", ")+(trDot(g)?"\n\n"+trTitle():""))}">${g.label}${trDot(g)?'<span class="trdot"></span>':""}</button>`).join(" ")
+    + (hasPO ? ` <button class="pill ${state.showPO?"on":""}" data-wh="PO">On order (PO)<span class="cnt">${poOrdersSel().length}</span></button>` : "")
     + ` <button class="pill ${allOn?"on":""}" data-wh="ALL">All</button>`;
   whEl.querySelectorAll(".pill").forEach(b=>b.onclick=()=>{
     const id=b.dataset.wh;
-    if(id==="ALL"){ if(allOn) state.selWH=new Set(["MAIN"]); else groups.forEach(g=>state.selWH.add(g.id)); }
+    if(id==="ALL"){
+      if(allOn){ state.selWH=new Set(["MAIN"]); state.showPO=false; }   // same toggle-back as before; PO is off by default
+      else { groups.forEach(g=>state.selWH.add(g.id)); if(hasPO) state.showPO=true; }
+    }
+    else if(id==="PO"){ state.showPO=!state.showPO; }
     else { if(state.selWH.has(id)){ if(state.selWH.size>1) state.selWH.delete(id); } else state.selWH.add(id); }
     renderControls(); renderReport();
   });
 
-  renderPOControls();
   updateFilterSummary();
-}
-
-function renderPOControls(){
-  const r=state.result, row=document.getElementById("po-row");
-  const list=(r&&r.poOrders)||[];
-  if(!list.length){ row.style.display="none"; state.showPO=false; return; }
-  row.style.display="";
-  const sel=poOrdersSel();
-  document.getElementById("po-pills").innerHTML =
-    `<button class="pill ${state.showPO?"on":""}" id="po-toggle">On order (PO)<span class="cnt">${sel.length}</span></button>`;
-  document.getElementById("po-toggle").onclick=()=>{ state.showPO=!state.showPO; renderPOControls(); renderReport(); };
 }
 
 function renderViewTabs(){
@@ -1513,6 +1507,35 @@ function pinHeader(){
 }
 window.addEventListener("resize",pinHeader);
 document.getElementById("admin").addEventListener("toggle",pinHeader);
+
+/* title bar: scroll the report down and it slides away, leaving the filters at the very top.
+   It comes back when the table is scrolled back to the top (or on a wheel-up while already at the top,
+   so changing a filter never makes the layout jump under the cursor). Phones keep their slim bar. */
+let _hdrAway=false;
+function setHdrAway(on){
+  if(on===_hdrAway) return;
+  if(on){
+    document.documentElement.style.setProperty("--bar-full", document.querySelector(".appbar").offsetHeight+"px");
+    const a=document.getElementById("admin"); if(a) a.open=false;      // the Update data panel hangs off the bar
+  }
+  _hdrAway=on; document.body.classList.toggle("hdr-away",on);
+  if(!on) setTimeout(pinHeader,260);                                    // re-measure once the bar is back
+}
+document.addEventListener("scroll",e=>{
+  const w=e.target;
+  if(!w || !w.classList || !w.classList.contains("tablewrap")) return;
+  if(document.body.classList.contains("compact")){ setHdrAway(false); return; }
+  if(!_hdrAway){
+    // only when there is plenty to scroll: the table gets taller by the bar's height, and must not run out of rows
+    if(w.scrollTop>60 && w.scrollHeight-w.clientHeight > document.querySelector(".appbar").offsetHeight+160) setHdrAway(true);
+  } else if(w.scrollTop<=4) setHdrAway(false);
+},true);
+document.addEventListener("wheel",e=>{
+  if(!_hdrAway || e.deltaY>=0) return;
+  const w=document.querySelector("#report .tablewrap");
+  if(!w || w.scrollTop<=0) setHdrAway(false);
+},{passive:true});
+window.addEventListener("resize",()=>setTimeout(()=>{ if(document.body.classList.contains("compact")) setHdrAway(false); },0));
 // the panel floats over the report: a click anywhere outside it closes it
 document.addEventListener("click",e=>{ const a=document.getElementById("admin"); if(a&&a.open&&!a.contains(e.target)) a.open=false; });
 
