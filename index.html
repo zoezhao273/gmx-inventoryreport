@@ -76,6 +76,9 @@ button.small{padding:5px 11px;font-size:11.5px}
 .tablewrap{margin-top:12px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:#fff;flex:1 1 auto;min-height:120px;overscroll-behavior:contain}
 table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
 th,td{padding:6px 10px;border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);white-space:nowrap}
+/* whole-pixel row height (6 + 18 + 6 + 1 = 31px): with fractional rows (31.125px) the 1px lines of the
+   frozen SKUCODE / SKUNAME cells land on half pixels and every other one vanished on some screens */
+th,td{line-height:18px}
 th{background:var(--hd);color:#fff;font-weight:600;text-align:left;position:sticky;top:0;z-index:3}
 th.num{text-align:right}
 th.frozen{position:sticky;z-index:4;background:var(--hd)}
@@ -88,18 +91,22 @@ tr.loose-head td{background:var(--amber-bg);color:#6b4a0e;font-weight:600;font-s
 tr.loose-head:hover td{background:var(--amber-bg)}
 tr.loose-note td{background:#fffdf6;border-top:1px dashed #e6c98a;padding:8px 12px;white-space:normal;text-align:left}
 tr.loose-note:hover td{background:#fffdf6}
-.ln{position:sticky;left:12px;max-width:min(1100px,calc(100vw - 110px));font-size:12px;line-height:1.55;color:#4a3a14}
+.ln{position:sticky;left:12px;max-width:min(1100px,calc(100vw - 110px));font-size:12px;line-height:19px;color:#4a3a14}
 .ln .c{margin:3px 0 6px}
 .ln .c>b{color:#6b4a0e}
 .ln .who{display:inline-block;font-size:10.5px;font-weight:600;padding:0 7px;border-radius:9px;background:#f3e3bf;color:#6b4a0e;margin-left:6px}
 .ln .c.ok>b{color:#1d5c43}.ln .c.ok .who{background:#dfeee6;color:#1d5c43}
 .ln ul{margin:2px 0 0;padding-left:18px}.ln li{margin:1px 0}
 .ln .m{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px}
-tr.loose td{background:#fdf8ec}
+.ln li.tr{margin:2px 0 6px}
+.ln .trl.route{margin-top:2px}
+.ln .trl.route>.m{font-weight:400}
+.ln .trl.sub{padding-left:16px}
+tr.loose td{background:#fdf8ec;border-bottom-color:#efe5cc;border-right-color:#f3ecd9}
 tr.loose td.frozen[title]{cursor:help}
 td.nm span.t{display:inline-block;max-width:205px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 td.nm span.t.tagged{max-width:166px}
-tr.pl-head td.cap,tr.loose-head td.cap{font-size:11.5px;line-height:1.35;overflow:hidden}
+tr.pl-head td.cap,tr.loose-head td.cap{font-size:11.5px;line-height:15px;overflow:hidden}
 tr.loose td.frozen{background:#fdf8ec}
 tr.kit td.sku{cursor:pointer;user-select:none}
 tr.child td{color:var(--ink-2);background:#f8f9fb;font-size:12px}
@@ -107,14 +114,14 @@ tr.child td.frozen{background:#f8f9fb}
 tr.child td.sku{padding-left:30px}
 tr.filterrow th{position:sticky;z-index:3;background:#eef2f0;padding:4px 6px;border-bottom:1px solid var(--line)}
 tr.filterrow th.frozen{z-index:5}
-tr.filterrow input{width:100%;box-sizing:border-box;font-family:inherit;font-size:11.5px;padding:3px 7px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
+tr.filterrow input{width:100%;height:24px;line-height:16px;box-sizing:border-box;font-family:inherit;font-size:11.5px;padding:3px 7px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
 tr.filterrow input:focus{outline:2px solid var(--g-700);outline-offset:0}
 .caret{display:inline-block;width:12px;font-size:9px;color:var(--ink-3);margin-right:4px;transition:transform .12s}
 tr.kit.open .caret{transform:rotate(90deg)}
 tr.pl-head,tr.loose-head{cursor:pointer;user-select:none}
 tr.pl-head .caret,tr.loose-head .caret{color:inherit;opacity:.7}
 tr.pl-head.open .caret,tr.loose-head.open .caret{transform:rotate(90deg)}
-.tag{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:9px;margin-left:6px;vertical-align:1px}
+.tag{display:inline-block;font-size:10px;line-height:14px;font-weight:600;padding:1px 6px;border-radius:9px;margin-left:6px;vertical-align:1px}
 .tag.kit{background:var(--g-100);color:var(--g-800)}
 .tag.loose{background:var(--amber-bg);color:var(--amber)}
 .tag.q{background:#eef2f0;color:var(--ink-2);font-family:'IBM Plex Mono',monospace}
@@ -128,6 +135,14 @@ tr.pl-head td.negsum{background:var(--rust-bg)!important;color:var(--rust);box-s
 .tag.neg{background:var(--rust);color:#fff;cursor:help}
 .pill .negdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--rust);margin-left:6px;vertical-align:1px}
 .pill.on .negdot{box-shadow:0 0 0 1.5px #fff}
+.pill .trdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-left:6px;vertical-align:1px}
+.pill.on .trdot{box-shadow:0 0 0 1.5px #fff}
+th.trflag{cursor:help}
+/* header tooltips (Z-Intransit, PO columns): shown at once anywhere over the header cell, tap on phones */
+th[data-tip]{cursor:help}
+#hdtip{position:fixed;z-index:60;display:none;max-width:min(460px,calc(100vw - 16px));background:#fff;color:var(--ink);
+  border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px 11px;
+  font-size:12px;line-height:1.5;white-space:pre-wrap;pointer-events:none;text-align:left;font-weight:400}
 .rowcount{font-size:11.5px;color:var(--ink-3);margin:10px 0 0}
 .emptystate{padding:40px;text-align:center;color:var(--ink-3)}
 
@@ -144,7 +159,12 @@ details.admin summary{cursor:pointer;padding:12px 16px;font-weight:600;color:var
 details.admin summary::-webkit-details-marker{display:none}
 details.admin summary .hint{font-weight:400;color:var(--ink-3);font-size:12px}
 .admin-body{padding:4px 16px 16px;border-top:1px solid var(--line-2)}
-.dz-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
+/* three cards per row (two rows: SOH · Transfers · Reservation / PO · Aging · BOM); phones reflow */
+.dz-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+@media (max-width:860px){ .dz-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))} }
+.dz .chk{position:relative;z-index:2;font-size:11px;margin-top:6px;color:var(--g-800);line-height:1.4}
+.dz .chk.warn{color:#6b4a0e;background:var(--amber-bg);border:1px solid #e6c98a;border-radius:4px;padding:4px 6px}
+.dz .chk:empty{display:none}
 .dz{border:1.5px dashed var(--ink-3);border-radius:var(--radius);padding:12px;background:var(--paper);position:relative}
 .dz:hover{border-color:var(--g-700);background:var(--g-100)}
 .dz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
@@ -206,7 +226,7 @@ td.soon-c{color:var(--amber);font-weight:600}
 /* ---------- purchase (on order) columns ---------- */
 th.po{background:var(--hd);vertical-align:top}
 th.po .eta{display:block;font-weight:400;font-size:10px;color:#8fb0a2;margin-top:2px;letter-spacing:.02em}
-th.po .flag{display:inline-block;margin-left:5px;min-width:15px;height:15px;line-height:15px;text-align:center;
+th .flag{display:inline-block;margin-left:5px;min-width:15px;height:15px;line-height:15px;text-align:center;
   border-radius:50%;background:var(--amber);color:#fff;font-size:10.5px;font-weight:700;cursor:help}
 td.po{background:#f3f8fc;color:#1b4763}
 th.pofirst,td.pofirst{border-left:2px solid var(--g-700)}
@@ -275,9 +295,9 @@ body.compact td.nm span.t.tagged{max-width:calc(var(--w2,160px) - 60px)}
   <div class="bar-r">
     <div class="asof" id="asof">Loading cloud data…</div>
   <details class="admin" id="admin">
-    <summary title="Finance only · Stock on Hand, Purchase Orders, Stock Aging and Reservation daily, BOM when it changes">Update data</summary>
+    <summary title="Finance only · Stock on Hand + Transfer Orders (export both at the same time), Reservation, Purchase Orders and Stock Aging daily, BOM when it changes">Update data</summary>
     <div class="admin-body">
-      <div class="admin-hint">Finance only · Stock on Hand, Purchase Orders, Stock Aging and Reservation daily, BOM when it changes</div>
+      <div class="admin-hint">Finance only · Stock on Hand + Transfer Orders (export both at the same time), Reservation, Purchase Orders and Stock Aging daily, BOM when it changes</div>
       <div class="pinrow">
         <label for="pin">Upload PIN</label><input id="pin" type="password" autocomplete="off">
         <span class="status" id="pin-status">Each file is checked locally first; “Publish” replaces the cloud copy that the sales team sees.</span>
@@ -288,15 +308,21 @@ body.compact td.nm span.t.tagged{max-width:calc(var(--w2,160px) - 60px)}
           <div class="st" id="st-soh">Drop or click to choose the .xlsx</div>
           <div class="pub"><button class="act small" data-pub="soh" disabled>Publish to cloud</button><span class="status" id="ps-soh"></span></div>
         </div>
-        <div class="dz"><input type="file" accept=".xlsx" data-ds="po">
-          <div class="t">Purchase Order list</div><div class="h">Daily · needs the <b>Unreceived Qty</b> column</div>
-          <div class="st" id="st-po">Drop or click to choose the .xlsx</div>
-          <div class="pub"><button class="act small" data-pub="po" disabled>Publish to cloud</button><span class="status" id="ps-po"></span></div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="transfer">
+          <div class="t">Transfer Order Execution Query</div><div class="h">Daily, together with Stock on Hand · explains Z-Intransit</div>
+          <div class="st" id="st-transfer">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="transfer" disabled>Publish to cloud</button><span class="status" id="ps-transfer"></span></div>
+          <div class="chk" id="chk-transfer"></div>
         </div>
         <div class="dz"><input type="file" accept=".xlsx" data-ds="reserv">
           <div class="t">Lock Stock Reservation Report</div><div class="h">Daily · stock already promised to customers</div>
           <div class="st" id="st-reserv">Drop or click to choose the .xlsx</div>
           <div class="pub"><button class="act small" data-pub="reserv" disabled>Publish to cloud</button><span class="status" id="ps-reserv"></span></div>
+        </div>
+        <div class="dz"><input type="file" accept=".xlsx" data-ds="po">
+          <div class="t">Purchase Order list</div><div class="h">Daily · needs the <b>Unreceived Qty</b> column</div>
+          <div class="st" id="st-po">Drop or click to choose the .xlsx</div>
+          <div class="pub"><button class="act small" data-pub="po" disabled>Publish to cloud</button><span class="status" id="ps-po"></span></div>
         </div>
         <div class="dz"><input type="file" accept=".xlsx" data-ds="aging">
           <div class="t">Stock Aging Alert Analysis</div><div class="h">Daily · drives which kits get short shared parts</div>
@@ -367,7 +393,7 @@ body.compact td.nm span.t.tagged{max-width:calc(var(--w2,160px) - 60px)}
 
   <div id="banner"></div>
   <div id="report"><div class="emptystate">Loading…</div></div>
-  <footer title="GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden · On-order columns show the unreceived qty of each open PO, kitted inside that PO only">GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden · On-order columns show the unreceived qty of each open PO, kitted inside that PO only</footer>
+  <footer title="GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden · On-order columns show the unreceived qty of each open PO, kitted inside that PO only · Z-Intransit is explained by the open transfer orders: partly received orders, or nothing received after 10 days, are flagged for Logistics">GREE México internal tool · sets = min(component on hand ÷ BOM qty) inside each warehouse · short shared parts go to the oldest main bodies first (Stock Aging, FIFO-trimmed to net on hand; no aging record = last) · unkitted parts listed at the bottom of their own product line · rows and columns with no stock in the selected warehouses are hidden · On-order columns show the unreceived qty of each open PO, kitted inside that PO only · Z-Intransit is explained by the open transfer orders: partly received orders, or nothing received after 10 days, are flagged for Logistics</footer>
 
 
 </div>
@@ -460,7 +486,61 @@ const InvEngine = (function(){
     return list;
   }
 
-  function build(soh, aging, bom, poRows){
+  /* kit a bag of pieces as far as it goes (biggest kits first); used to describe what an
+     order still has on the road: "MXR0002 ×10 sets, MXL0007B ×1"                       */
+  function kitPieces(qtyMap, kits){
+    const rem=new Map(qtyMap), sets=[];
+    const cand=[]; kits.forEach(k=>{ if(k.subs.some(s=>(rem.get(s.sub)||0)>0)) cand.push(k); });
+    cand.sort((a,b)=> b.subs.length-a.subs.length || a.kit.localeCompare(b.kit));
+    cand.forEach(k=>{
+      let n=Infinity; k.subs.forEach(s=>{ n=Math.min(n, Math.floor((rem.get(s.sub)||0)/(s.q||1))); });
+      if(n>0 && isFinite(n)){ k.subs.forEach(s=>rem.set(s.sub,rem.get(s.sub)-n*(s.q||1))); sets.push({kit:k.kit, pl:k.pl, n}); }
+    });
+    const rest=[]; rem.forEach((q,c)=>{ if(q>0) rest.push({sku:c, qty:q}); });
+    rest.sort((a,b)=>a.sku.localeCompare(b.sku));
+    return {sets, rest};
+  }
+
+  /* ---------- transfer orders (Transfer Order Execution Query) ----------
+     rows: [doc, docDate, from, to, sku, name, out, in, inTransit] — only orders with
+     something still in transit are published. Per order:
+       partial : part already received AND part still in transit → a receipt was most
+                 likely missed at the receiving warehouse (Logistics)
+       overdue : nothing received yet and the order is older than TR_OVERDUE_DAYS (Logistics)
+       transit : nothing received yet, still within the normal transit time            */
+  const TR_OVERDUE_DAYS=10;
+  function buildTransfers(trRows){
+    const D = v => { const s=String(v==null?"":v).trim(); const m=s.match(/(\d{4})-(\d{2})-(\d{2})/); return m?`${m[1]}-${m[2]}-${m[3]}`:s; };
+    const now=new Date(), today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+    const docs=new Map();
+    (trRows||[]).forEach(r=>{
+      const no=String(r[0]||"").trim(), sku=String(r[4]||"").trim(); if(!no||!sku) return;
+      if(!docs.has(no)) docs.set(no,{no, date:D(r[1]), from:new Set(), to:new Set(), lines:[], out:0, inQ:0, tr:0, routes:new Map()});
+      const d=docs.get(no);
+      const from=String(r[2]||"").trim(), to=String(r[3]||"").trim(), o=NUM(r[6]), i=NUM(r[7]), t=NUM(r[8]);
+      d.lines.push({sku, name:String(r[5]||"").trim(), from, to, out:o, inQ:i, tr:t});
+      d.out+=o; d.inQ+=i; d.tr+=t; if(from) d.from.add(from); if(to) d.to.add(to);
+      // one route per "from → to" inside the order: its own out / in-transit totals and pieces
+      const key=from+"→"+to;
+      if(!d.routes.has(key)) d.routes.set(key,{from, to, out:0, inQ:0, tr:0, transit:new Map()});
+      const rt=d.routes.get(key); rt.out+=o; rt.inQ+=i; rt.tr+=t;
+      if(t>0) rt.transit.set(sku,(rt.transit.get(sku)||0)+t);
+    });
+    const list=[...docs.values()];                    // all orders; status only matters while something is in transit
+    list.forEach(d=>{
+      const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d.date);
+      d.days = m ? Math.round((today-Date.UTC(+m[1],+m[2]-1,+m[3]))/86400000) : null;
+      d.status = !(d.tr>0) ? "done" : d.inQ>0 ? "partial" : ((d.days!=null && d.days>TR_OVERDUE_DAYS) ? "overdue" : "transit");
+      d.flag = d.status!=="transit";
+      d.fromTxt=[...d.from].sort(whCmp).join("/"); d.toTxt=[...d.to].sort(whCmp).join("/");
+      // routes already fully received are dropped: they need no follow-up
+      d.openRoutes=[...d.routes.values()].filter(rt=>rt.tr>0).sort((a,b)=>whCmp(a.from,b.from)||whCmp(a.to,b.to));
+    });
+    list.sort((a,b)=> (a.date||"").localeCompare(b.date||"") || a.no.localeCompare(b.no));   // oldest first
+    return list;
+  }
+
+  function build(soh, aging, bom, poRows, trRows){
     /* ---------- SOH ---------- */
     const H = soh.header.map(h=>String(h||"").trim());
     const iCate=H.indexOf("CATECODE"), iSku=H.indexOf("SKUCODE"), iName=H.indexOf("SKUNAME");
@@ -570,19 +650,42 @@ const InvEngine = (function(){
       o.leftover.forEach((q,c)=>{ if(subToKits.has(c)) addPO(poLoose,c,o.no,q); });
     });
 
+    /* ---------- Transfer orders vs the Z-Intransit column ----------
+       the in-transit qty of the open orders, summed by material, must equal Z-Intransit in
+       Stock on Hand; a gap usually means the two files were exported at different times or
+       the transfer query's date range missed older orders                                   */
+    const trAll  = trRows ? buildTransfers(trRows) : [];
+    const trDocs = trAll.filter(d=>d.tr>0);           // orders with something still in transit
+    trDocs.forEach(d=>d.openRoutes.forEach(rt=>{ rt.kitted=kitPieces(rt.transit, kits); }));   // complete sets shown as kits
+    const zWhs = warehouses.filter(w=>whGroup(w)==="INTRANSIT");
+    let trCheck=null;
+    if(trRows){
+      const a=new Map(), b=new Map();
+      trDocs.forEach(d=>d.lines.forEach(l=>{ if(l.tr) a.set(l.sku,(a.get(l.sku)||0)+l.tr); }));
+      zWhs.forEach(w=>mat.forEach(m=>{ const v=NUM(m.qty[w]); if(v) b.set(m.sku,(b.get(m.sku)||0)+v); }));
+      const diffs=[]; new Set([...a.keys(),...b.keys()]).forEach(s=>{ const x=a.get(s)||0, y=b.get(s)||0; if(Math.abs(x-y)>1e-6) diffs.push({sku:s, orders:x, soh:y}); });
+      diffs.sort((p,q)=>p.sku.localeCompare(q.sku));
+      trCheck={diffs, orders:[...a.values()].reduce((t,v)=>t+v,0), soh:[...b.values()].reduce((t,v)=>t+v,0)};
+    }
+
 
     /* ---------- Loose-part diagnosis (explanations only — the table keeps the real stock) ----------
-       Order of matching, each step working on what the previous one left:
-         1 damaged packaging : main warehouse + its own "-DP" warehouse together form sets
-         2 on order          : what is left in a main warehouse + every open PO shipped to that
-                               same warehouse (pooled across orders, no-ETA / overdue included)
-         3 transfer?         : two main warehouses of the same city would form sets together —
-                               never paired, only flagged
-         4 samples           : SMP pieces still unpaired
-         5 shortage          : everything else, stock and on-order pieces bought unpaired
-       plus: partly received POs (goods may be in without a receipt doc).
-       Kits compete for shared parts: the kit using the most parts that are already in stock
-       goes first, then kits with more components, then kit code.                              */
+       One question per loose piece: WHERE IS ITS MATCHING PART? Searched in this order, each step
+       working on what the previous ones left ("main warehouse" = code without -DP / -RE):
+         0 samples         : SMP pieces are not matched at all                       → Marketing / Sales
+         1 transfer        : on an open transfer order to this warehouse (pieces in Z-Intransit).
+                             Nothing received and ≤ 10 days → silent; partly received or nothing
+                             received after 10 days                                   → Logistics
+         2 damaged pack.   : main warehouse ↔ its own -DP warehouse                     → Logistics
+         3 product repair  : main warehouse ↔ its own -RE warehouse                     → Logistics
+         4 same main wh    : -DP ↔ -RE of the same main warehouse                       → Logistics
+         5 on order        : open POs shipped to this same warehouse (never across warehouses) → no action
+         6 nowhere         : stock → short of the matching part                         → Import and Logistics
+                             Z-Intransit with no matching order                         → Logistics
+                             PO pieces bought unpaired                                  → Import
+       plus: partly received POs (goods may be in without a receipt doc)                → Import
+       Never paired across main warehouses. Kits compete for shared parts: the kit using the most
+       parts already in stock goes first, then kits with more components, then kit code.          */
     const looseNotes=[];
     {
       const plSku=c=>{ const m=mat.get(c); return m?m.pl:plOfCode(c); };
@@ -592,6 +695,12 @@ const InvEngine = (function(){
       poOrders.forEach(o=>{ const left=new Map(); o.leftover.forEach((q,c)=>{ if(subToKits.has(c)&&q>0) left.set(c,q); });
         if(!left.size) return; if(!poLeft.has(o.shipTo)) poLeft.set(o.shipTo,[]); poLeft.get(o.shipTo).push({no:o.no, eta:o.eta, left}); });
       poLeft.forEach(l=>l.sort((a,b)=>(a.eta||"9999").localeCompare(b.eta||"9999")||a.no.localeCompare(b.no)));
+      const kitsOf=c=>[...(subToKits.get(c)||[])].map(kc=>kits.get(kc));
+      const needs=c=>{ const ks=kitsOf(c); if(!ks.length||ks.length>3) return {fits:ks.length};
+        return {needs:ks.map(k=>k.subs.filter(sb=>sb.sub!==c).map(sb=>sb.sub).join(" + "))}; };
+      const byPlPush=(cat,wh,list,extra)=>{ const byPl=new Map();
+        list.forEach(it=>{ const pl=plSku(it.sku); if(!byPl.has(pl)) byPl.set(pl,[]); byPl.get(pl).push(it); });
+        byPl.forEach((items,pl)=>looseNotes.push({cat, wh, pl, ...(extra||{}), items:items.sort((a,b)=>a.sku.localeCompare(b.sku))})); };
 
       // greedy set forming over several sources; sources are consumed in the order given
       function formSets(sources, needBoth){
@@ -617,49 +726,80 @@ const InvEngine = (function(){
         return made;
       }
       const has=(map,k)=>k.subs.some(sb=>(map.get(sb.sub)||0)>0);
+      const pairWh=(w1,w2,cat)=>{ if(!stockLeft.has(w1)||!stockLeft.has(w2)) return;
+        const A=stockLeft.get(w1), B=stockLeft.get(w2);
+        formSets([{id:w1,map:A,stock:true},{id:w2,map:B,stock:true}], k=>has(A,k)&&has(B,k))
+          .forEach(x=>looseNotes.push({cat, wh:w1, wh2:w2, ...x})); };
 
-      // 1 damaged packaging
-      warehouses.filter(w=>whGroup(w)==="DP").forEach(dp=>{
-        const main=dp.replace(/-DP$/i,""); if(!stockLeft.has(dp)||!stockLeft.has(main)) return;
-        const D=stockLeft.get(dp), M=stockLeft.get(main);
-        formSets([{id:dp,map:D,stock:true},{id:main,map:M,stock:true}], k=>has(D,k)&&has(M,k))
-          .forEach(x=>looseNotes.push({cat:"damaged", wh:main, dp, ...x}));
+      // 0 samples: SMP pieces are taken out before any matching
+      [...stockLeft.keys()].sort(whCmp).forEach(wh=>{ if(whGroup(wh)==="INTRANSIT") return;
+        const m=stockLeft.get(wh), items=[];
+        m.forEach((q,c)=>{ if(q>0 && plSku(c)==="SMP"){ items.push({sku:c, qty:q}); m.set(c,0); } });
+        if(items.length) byPlPush("sample", wh, items); });
+
+      // 1 transfer orders still in transit (oldest first)
+      const zMaps=zWhs.map(z=>stockLeft.get(z)).filter(Boolean);
+      const zHave=sku=>zMaps.reduce((t,m)=>t+(m.get(sku)||0),0);
+      const zTake=(sku,q)=>zMaps.forEach(m=>{ if(q<=0) return; const h=m.get(sku)||0, t=Math.min(h,q); if(t>0){ m.set(sku,h-t); q-=t; } });
+      // one note per order and product line, listing only the routes that have something of that
+      // product line still in transit; orders within the normal transit time are settled silently
+      trDocs.forEach(d=>{
+        const notes={};                                   // pl -> note (flagged orders only)
+        const nOf=pl=>notes[pl]||(notes[pl]={cat:d.status==="overdue"?"trlate":"trmiss", pl, wh:d.toTxt,
+          doc:d.no, date:d.date, days:d.days, status:d.status, routes:new Map()});
+        const rOf=(pl,rt)=>{ const n=nOf(pl), k=rt.from+"→"+rt.to;
+          if(!n.routes.has(k)) n.routes.set(k,{from:rt.from, to:rt.to, out:rt.out, tr:rt.tr, sets:[], rest:[], pairs:[]});
+          return n.routes.get(k); };
+        d.openRoutes.forEach(rt=>{
+          const to=rt.to;
+          const docMap=new Map(); rt.transit.forEach((q,sku)=>{ const t=Math.min(q,zHave(sku)); if(t>0) docMap.set(sku,t); });
+          let made=[];
+          if(docMap.size){
+            if(!stockLeft.has(to)) stockLeft.set(to,new Map());
+            const dest=stockLeft.get(to);
+            made=formSets([{id:to,map:dest,stock:true},{id:d.no,map:docMap}], k=>has(dest,k)&&has(docMap,k));
+          }
+          // every Z-Intransit piece of this route belongs to the order, paired or not
+          rt.transit.forEach((q,sku)=>zTake(sku,q));
+          if(!d.flag) return;                             // ≤ 10 days, nothing received: no message at all
+          rt.kitted.sets.forEach(s=>rOf(s.pl,rt).sets.push(s));
+          rt.kitted.rest.forEach(x=>rOf(plSku(x.sku),rt).rest.push(x));
+          made.forEach(x=>rOf(x.pl,rt).pairs.push(x));
+        });
+        Object.values(notes).forEach(n=>{ n.routes=[...n.routes.values()]; looseNotes.push(n); });
       });
-      // 2 stock + on order in the same warehouse
-      const whs2=new Set([...poLeft.keys()]);
-      whs2.forEach(wh=>{
+
+      // 2 / 3 / 4 inside one main warehouse (main = code without -DP / -RE)
+      const mainOf=w=>String(w).replace(/-(DP|RE)$/i,"");
+      const families=new Map();
+      [...stockLeft.keys()].filter(w=>whGroup(w)!=="INTRANSIT").forEach(w=>{ const f=mainOf(w); if(!families.has(f)) families.set(f,new Set()); families.get(f).add(w); });
+      const find=(f,grp)=>[...families.get(f)].find(w=>whGroup(w)===grp && mainOf(w)===f);
+      [...families.keys()].sort(whCmp).forEach(f=>{
+        const main=stockLeft.has(f)?f:null, dp=find(f,"DP"), re=find(f,"RE");
+        if(main&&dp) pairWh(main, dp, "damaged");       // 2 damaged packaging
+        if(main&&re) pairWh(main, re, "repair");        // 3 product repair
+        if(dp&&re)   pairWh(dp, re, "samemain");        // 4 -DP ↔ -RE of the same main warehouse
+      });
+
+      // 5 stock + on order in the same warehouse (POs never pair across warehouses)
+      poLeft.forEach((list,wh)=>{
         const srcs=[]; if(stockLeft.has(wh) && whGroup(wh)==="MAIN") srcs.push({id:wh,map:stockLeft.get(wh),stock:true});
-        poLeft.get(wh).forEach(p=>srcs.push({id:p.no,map:p.left,eta:p.eta||""}));
+        list.forEach(p=>srcs.push({id:p.no,map:p.left,eta:p.eta||""}));
         formSets(srcs, k=>srcs.filter(sr=>has(sr.map,k)).length>=2)       // only combinations across sources are new
           .forEach(x=>{ const pp=x.parts.filter(q=>!q.stock);
             const eta = pp.some(q=>!q.eta) ? "" : pp.reduce((m,q)=>q.eta>m?q.eta:m,"");
             looseNotes.push({cat:"onorder", wh, eta, etaTBD:pp.some(q=>!q.eta), ...x}); });
       });
-      // 3 same city, other main warehouse -> transfer?
-      const city=w=>String(w).toUpperCase().split("-")[0];
-      const mains=[...stockLeft.keys()].filter(w=>whGroup(w)==="MAIN").sort(whCmp);
-      mains.forEach((w1,i)=>mains.slice(i+1).forEach(w2=>{
-        if(city(w1)!==city(w2)) return;
-        const A=stockLeft.get(w1), B=stockLeft.get(w2);
-        formSets([{id:w1,map:A,stock:true},{id:w2,map:B,stock:true}], k=>has(A,k)&&has(B,k))
-          .forEach(x=>looseNotes.push({cat:"transfer", wh:w1, wh2:w2, ...x}));
-      }));
-      // 4 + 5 what is still unpaired
-      const kitsOf=c=>[...(subToKits.get(c)||[])].map(kc=>kits.get(kc));
-      const needs=c=>{ const ks=kitsOf(c); if(!ks.length||ks.length>3) return {fits:ks.length};
-        return {needs:ks.map(k=>k.subs.filter(sb=>sb.sub!==c).map(sb=>sb.sub).join(" + "))}; };
+
+      // 6 nowhere: what is still unpaired
       [...stockLeft.keys()].sort(whCmp).forEach(wh=>{
-        const bySmp={sample:[], short:[]};
-        stockLeft.get(wh).forEach((q,c)=>{ if(q>0) (plSku(c)==="SMP"?bySmp.sample:bySmp.short).push({sku:c, qty:q, ...needs(c)}); });
-        ["sample","short"].forEach(cat=>{
-          const byPl=new Map(); bySmp[cat].forEach(it=>{ const pl=plSku(it.sku); if(!byPl.has(pl)) byPl.set(pl,[]); byPl.get(pl).push(it); });
-          byPl.forEach((items,pl)=>looseNotes.push({cat, wh, pl, items:items.sort((a,b)=>a.sku.localeCompare(b.sku))}));
-        });
+        const items=[]; stockLeft.get(wh).forEach((q,c)=>{ if(q>0) items.push({sku:c, qty:q, ...needs(c)}); });
+        if(items.length) byPlPush(whGroup(wh)==="INTRANSIT"?"zloose":"short", wh, items);
       });
       poLeft.forEach((list,wh)=>{
         const agg=new Map(); list.forEach(p=>p.left.forEach((q,c)=>{ if(!(q>0)) return; if(!agg.has(c)) agg.set(c,{sku:c,qty:0,pos:[]}); const a=agg.get(c); a.qty+=q; a.pos.push(p.no); }));
-        const byPl=new Map(); agg.forEach(it=>{ Object.assign(it,needs(it.sku)); const pl=plSku(it.sku); if(!byPl.has(pl)) byPl.set(pl,[]); byPl.get(pl).push(it); });
-        byPl.forEach((items,pl)=>looseNotes.push({cat:"short", wh, pl, onOrder:true, items:items.sort((a,b)=>a.sku.localeCompare(b.sku))}));
+        agg.forEach(it=>Object.assign(it,needs(it.sku)));
+        if(agg.size) byPlPush("poshort", wh, [...agg.values()], {onOrder:true});
       });
       // partly received purchase orders: open lines of orders that already had a receipt
       poOrders.forEach(o=>{ if(!(o.received>0) || !(o.total>0)) return;
@@ -686,6 +826,7 @@ const InvEngine = (function(){
 
     const productLines=[...new Set(rows.map(r=>r.pl))].sort((a,b)=>(PL_RANK[a]||99)-(PL_RANK[b]||99) || a.localeCompare(b));
     return {warehouses, whGroup, productLines, rows, errors, kits, mat, alloc, poOrders, kitRowsDropped, looseNotes,
+      trDocs, trCheck, trLoaded:!!trRows, trOverdueDays:TR_OVERDUE_DAYS,
       stats:{materials:mat.size, kits:kits.size, sohTotal:[...mat.values()].reduce((s,m)=>s+m.total,0)}};
   }
 
@@ -840,8 +981,8 @@ function parsePO(wb){
       cur.items.push([code, S(raw[cols["Item Description"]]), numQ(raw[cols["Unreceived Qty"]]), numQ(raw[cols["Total Qty"]])]);
     }
   }
-  if(!orders.length) throw new Error("no \u201cPurchase Order\u201d block found — is this the Purchase Order list export?");
-  if(missingUnrec) throw new Error("the item table has no \u201cUnreceived Qty\u201d column — re-export the PO list with that column");
+  if(!orders.length) throw new Error("no “Purchase Order” block found — is this the Purchase Order list export?");
+  if(missingUnrec) throw new Error("the item table has no “Unreceived Qty” column — re-export the PO list with that column");
   const out=[]; let open=0; const bad=[];
   orders.forEach(o=>{
     const sumTot=o.items.reduce((a,x)=>a+x[3],0), sumUn=o.items.reduce((a,x)=>a+x[2],0);
@@ -856,10 +997,37 @@ function parsePO(wb){
   const note=`${open} open of ${orders.length} orders`+(bad.length?` · line/total qty mismatch: ${bad.join(", ")}`:"");
   return {header:PO_HEADER.slice(), rows:out, note};
 }
-const PARSERS={soh:parseSOH, aging:parseAging, bom:parseBOM, reserv:parseReserv, po:parsePO};
+/* Transfer Order Execution Query. Published: order no., date, from / to warehouse, material and the
+   three quantities — only for orders that still have something in transit (all their lines, so a
+   partial receipt stays visible). Voucher Created By / Approved By are never read. */
+const TR_HEADER=["Doc No.","Doc Date","Previous Warehouse","New Warehouse","Material Code","Material Name","Transferred-out Qty","Transferred-in Qty","Intransit Qty"];
+function parseTransfer(wb){
+  const rows=toRows(wb.Sheets[wb.SheetNames[0]]);
+  let hi=-1; for(let i=0;i<Math.min(rows.length,20);i++){ const h=(rows[i]||[]).map(S); if(h.includes("Doc No.")&&h.some(x=>x.startsWith("Intransit Transfer Qty"))) { hi=i; break; } }
+  if(hi<0) throw new Error("header row with Doc No. / Intransit Transfer Qty not found — is this the Transfer Order Execution Query export?");
+  const h=rows[hi].map(S); const col=n=>{ const i=h.indexOf(n); return i>=0?i:h.findIndex(x=>x.startsWith(n)); };
+  const c={doc:col("Doc No."), date:col("Doc Date"), from:col("Previous Warehouse"), to:col("New Warehouse"), sku:col("Material Code"),
+    name:col("Material Name"), out:col("Transferred-out Qty"), inn:col("Transferred-in Qty"), tr:col("Intransit Transfer Qty")};
+  const miss=Object.keys(c).filter(k=>c[k]<0);
+  if(miss.length) throw new Error("columns missing: "+miss.join(", ")+" — re-export the Transfer Order Execution Query with all quantity columns");
+  let qd=""; for(let i=0;i<hi;i++){ const r=rows[i]||[]; const k=r.map(S).findIndex(x=>/^Query Date/i.test(x)); if(k>=0) qd=normDate(r[k+1]); }
+  const all=[];
+  for(let r=hi+1;r<rows.length;r++){ const row=rows[r]||[]; const doc=S(row[c.doc]), sku=S(row[c.sku]);
+    if(!doc||!sku) continue;                                   // the "Total" line has no material
+    all.push([doc, normDate(row[c.date]), S(row[c.from]), S(row[c.to]), sku, S(row[c.name]),
+      numQ(row[c.out]), numQ(row[c.inn]), numQ(row[c.tr])]); }
+  if(!all.length) throw new Error("no transfer lines under the header");
+  const trByDoc=new Map(); all.forEach(r=>trByDoc.set(r[0],(trByDoc.get(r[0])||0)+r[8]));
+  const out=all.filter(r=>trByDoc.get(r[0])>0);   // only orders with something still in transit
+  const open=[...trByDoc.values()].filter(v=>v>0).length;
+  const dates=all.map(r=>r[1]).filter(Boolean).sort();
+  const note=`${open} of ${trByDoc.size} orders still in transit`+(dates.length?` · orders ${dates[0]} → ${dates[dates.length-1]}`:"")+(qd?` · query date ${qd}`:"");
+  return {header:TR_HEADER.slice(), rows:out, note};
+}
+const PARSERS={soh:parseSOH, aging:parseAging, bom:parseBOM, reserv:parseReserv, po:parsePO, transfer:parseTransfer};
 
 /* ---------- state ---------- */
-const DATASETS=["soh","aging","bom","reserv","po"];
+const DATASETS=["soh","aging","bom","reserv","po","transfer"];
 const state={ cloud:null, local:{}, localFiles:{}, result:null, rvResult:null,
   view:"stock", selPL:new Set(["RAC"]), selWH:new Set(["MAIN"]), showPO:false, search:"", previewing:false, openKits:new Set(), closedPL:new Set(), closedLoose:new Set(), colFilter:{code:"",name:""}, _focus:null,
   rvSel:{status:new Set(["ALL"]), branch:new Set(["ALL"]), sm:"ALL"}, rvSearch:"", rvCol:{code:"",name:"",wh:"",req:"",eta:"",exp:""}, _rvFocus:null, openDocs:new Set(), openKitRows:new Set(), rvOpenInit:false, viewTouched:false };
@@ -877,6 +1045,13 @@ function poRowsOf(ds){
   const ix=PO_HEADER.map(n=>H.indexOf(n));
   return ds.rows.map(r=>ix.map(i=>i<0?"":r[i]));
 }
+/* transfer rows in TR_HEADER order; null when the file was never uploaded (engine then falls back) */
+function trRowsOf(ds){
+  if(!ds||!ds.header) return null;
+  const H=(ds.header||[]).map(h=>String(h||"").trim());
+  const ix=TR_HEADER.map(n=>H.indexOf(n));
+  return (ds.rows||[]).map(r=>ix.map(i=>i<0?"":r[i]));
+}
 function rebuild(){
   const src=datasetsInUse();
   // reservations are independent of soh/aging/bom, but use BOM for kitting when present
@@ -886,12 +1061,12 @@ function rebuild(){
   if(!src.soh||!src.aging||!src.bom){ state.result=null; }
   else{
     try{
-      state.result = InvEngine.build({header:src.soh.header, rows:src.soh.rows}, src.aging.rows, src.bom.rows, poRowsOf(src.po));
+      state.result = InvEngine.build({header:src.soh.header, rows:src.soh.rows}, src.aging.rows, src.bom.rows, poRowsOf(src.po), trRowsOf(src.transfer));
       if(!state.selPL.size || ![...state.selPL].some(p=>state.result.productLines.includes(p))){ state.selPL=new Set([state.result.productLines[0]]); }
     }catch(err){ console.error(err); state.result=null; setBanner("err","Could not build the report: "+esc(err.message)); }
   }
   if(!state.viewTouched){ state.view = (!state.result && state.rvResult) ? "reserv" : "stock"; }
-  renderControls(); renderAsOf(); renderReport();
+  renderControls(); renderAsOf(); renderTrCheck(); renderReport();
 }
 
 /* ---------- reservations model ---------- */
@@ -959,7 +1134,7 @@ function buildReservations(ds, bomDs){
       branch:String(r[c.branch]||"").trim(), sm:String(r[c.sm]||"").trim(), wh:String(r[c.wh]||"").trim() };
   });
   const gmap=new Map();
-  lines.forEach(l=>{ if(!gmap.has(l.doc)) gmap.set(l.doc,{doc:l.doc,branch:l.branch,sm:l.sm,whs:new Set(),lines:[],qty:0,req:l.req,days:l.days}); 
+  lines.forEach(l=>{ if(!gmap.has(l.doc)) gmap.set(l.doc,{doc:l.doc,branch:l.branch,sm:l.sm,whs:new Set(),lines:[],qty:0,req:l.req,days:l.days});
     const g=gmap.get(l.doc); g.lines.push(l); g.whs.add(l.wh); g.qty+=l.qty;
     if(l.req && (!g.req || l.req<g.req)) g.req=l.req;            // earliest required = most urgent
     if(l.days!=null && (g.days==null || l.days<g.days)) g.days=l.days;
@@ -991,10 +1166,48 @@ function renderAsOf(){
   const stale = meta.soh && (Date.now()-new Date(meta.soh.uploadedAt).getTime() > 36*3600*1000);
   const rvStale = meta.reserv && (Date.now()-new Date(meta.reserv.uploadedAt).getTime() > 36*3600*1000);
   const sm=meta.soh, short=sm?new Date(sm.uploadedAt).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"not uploaded";
-  const full = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Purchase orders","po")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
+  const full = `${line("Stock on Hand","soh")}${stale?' <span class="warn">— more than a day old</span>':""}<br>${line("Transfer orders","transfer")}<br>${line("Purchase orders","po")}<br>${line("Reservation","reserv")}${rvStale?' <span class="warn">— more than a day old</span>':""}<br>${line("Stock Aging","aging")}<br>${line("BOM","bom")}`;
   // phones: one short line (Stock on Hand time); tap it to see every file's upload time
   el.innerHTML = `<span class="asof-full">${full}</span><span class="asof-short">SOH <b>${esc(short)}</b>${(stale||rvStale)?' <span class="warn">●</span>':""} <span class="more">ⓘ</span></span>`;
   el.onclick = ()=>{ if(document.body.classList.contains("compact")) el.classList.toggle("open"); };
+}
+
+/* ---------- transfer orders: reconciliation line on the upload card + Z-Intransit header tooltip ---------- */
+function renderTrCheck(){
+  const el=document.getElementById("chk-transfer"); if(!el) return;
+  const r=state.result, c=r&&r.trCheck;
+  if(!c){ el.className="chk"; el.textContent=""; return; }
+  const N=n=>Math.round(n).toLocaleString("en-US");
+  if(!c.diffs.length){ el.className="chk"; el.textContent=`✓ Matches Z-Intransit in Stock on Hand (${N(c.soh)} pcs)`; return; }
+  el.className="chk warn";
+  el.textContent=`Z-Intransit ${N(c.soh)} pcs vs open transfer orders ${N(c.orders)} pcs — ${c.diffs.length} material${c.diffs.length===1?"":"s"} differ (`
+    +c.diffs.slice(0,4).map(d=>`${d.sku}: SOH ${N(d.soh)} / orders ${N(d.orders)}`).join(", ")+(c.diffs.length>4?", …":"")
+    +"). Export both files at the same time, and widen the transfer query's date range if older orders are missing.";
+}
+/* complete sets as kits, the rest as pieces: ["MXR0002 ×10 sets", "MXL0007B ×1"] */
+function trItems(k){ const N=n=>Math.round(n).toLocaleString("en-US");
+  return [...k.sets.map(s=>`${s.kit} ×${N(s.n)} set${s.n===1?"":"s"}`), ...k.rest.map(x=>`${x.sku} ×${N(x.qty)}`)]; }
+function trFlagged(){ const r=state.result; return r&&r.trDocs ? r.trDocs.filter(d=>d.flag) : []; }
+function trNeedsFlag(){ const r=state.result; return !!r && (trFlagged().length>0 || !!(r.trCheck&&r.trCheck.diffs.length)); }
+function trTitle(){
+  const r=state.result; if(!r||!r.trLoaded) return "Transfer Order Execution Query not uploaded — Z-Intransit cannot be explained";
+  const N=n=>Math.round(n).toLocaleString("en-US");
+  /* order no. / created date / one block per route not fully received:
+       GDL-JD → CUL-ACX · 3 of 186 pcs not received
+         MXL0007B ×1, MXL0009B ×1, MXL0013A ×1                          */
+  const block=d=>`${d.no}\ncreated ${d.date} (${d.days} days)\n`+d.openRoutes.map(rt=>{
+      const L=trItems(rt.kitted);
+      return `${rt.from} → ${rt.to} · ${N(rt.tr)} of ${N(rt.out)} pcs not received\n  `+(L.length>8?L.slice(0,8).concat(`…+${L.length-8}`):L).join(", ");
+    }).join("\n\n");
+  const parts=[];
+  const part=r.trDocs.filter(d=>d.status==="partial"), over=r.trDocs.filter(d=>d.status==="overdue");
+  if(part.length) parts.push("调拨漏入库 / transfer partly received:\n"+part.map(block).join("\n\n"));
+  if(over.length) parts.push(`调拨在途超过${r.trOverdueDays}天 / nothing received after ${r.trOverdueDays} days:\n`+over.map(block).join("\n\n"));
+  if(!part.length && !over.length) parts.push("No transfer order to follow up.");
+  const c=r.trCheck;
+  if(c&&c.diffs.length) parts.push(`对账差异 / Z-Intransit ≠ open transfer orders (${c.diffs.length}):\n`
+    +c.diffs.slice(0,8).map(d=>`  ${d.sku}  SOH ${N(d.soh)} / orders ${N(d.orders)}`).join("\n")+(c.diffs.length>8?`\n  …+${c.diffs.length-8}`:""));
+  return parts.join("\n\n");
 }
 
 function renderControls(){
@@ -1021,7 +1234,9 @@ function renderControls(){
   const present=new Set(r.warehouses.map(w=>r.whGroup(w)));
   const groups=WH_GROUPS.filter(g=>present.has(g.id));
   const allOn=groups.every(g=>state.selWH.has(g.id));
-  whEl.innerHTML = groups.map(g=>`<button class="pill ${state.selWH.has(g.id)?"on":""}" data-wh="${g.id}" title="${esc(r.warehouses.filter(w=>r.whGroup(w)===g.id).join(", "))}">${g.label}</button>`).join(" ")
+  // Intransit pill: amber dot when a transfer order needs Logistics, visible even while Intransit is not selected
+  const trDot=g=>g.id==="INTRANSIT" && trNeedsFlag();
+  whEl.innerHTML = groups.map(g=>`<button class="pill ${state.selWH.has(g.id)?"on":""}" data-wh="${g.id}" title="${esc(r.warehouses.filter(w=>r.whGroup(w)===g.id).join(", ")+(trDot(g)?"\n\n"+trTitle():""))}">${g.label}${trDot(g)?'<span class="trdot"></span>':""}</button>`).join(" ")
     + ` <button class="pill ${allOn?"on":""}" data-wh="ALL">All</button>`;
   whEl.querySelectorAll(".pill").forEach(b=>b.onclick=()=>{
     const id=b.dataset.wh;
@@ -1185,12 +1400,17 @@ function poHeadLabel(o){
 
 /* ---------- loose-part explanations (engine: looseNotes) ---------- */
 const NOTE_CATS=[
+  // display order follows the matching steps; "no action" last
+  {cat:"trmiss",   label:"Transfer not fully received",                 who:"Logistics, please confirm the receipt"},
+  {cat:"trlate",   label:"Transfer not received after 10 days",         who:"Logistics, please confirm the receipt"},
   {cat:"damaged",  label:"Damaged packaging",                           who:"Logistics, please follow up"},
-  {cat:"transfer", label:"Matching part in another warehouse of the same city", who:"Logistics, please check whether a transfer was made"},
+  {cat:"repair",   label:"Product repair",                              who:"Logistics, please follow up"},
+  {cat:"samemain", label:"Matching part within the same main warehouse", who:"Logistics, please follow up"},
+  {cat:"zloose",   label:"Loose parts in transit (Z-Intransit)",        who:"Logistics, please check the transfer"},
   {cat:"sample",   label:"Samples without their pair",                  who:"Marketing / Sales, please confirm"},
-  {cat:"short",    label:"Short of the matching part",                  who:"Import, please follow up"},
+  {cat:"short",    label:"Short of the matching part",                  who:"Import and Logistics, please follow up"},
+  {cat:"poshort",  label:"Bought unpaired on purchase orders",          who:"Import, please follow up"},
   {cat:"partial",  label:"Partly received purchase orders",             who:"Import, please confirm whether goods are in without a receipt doc"},
-  // display order only (the engine still matches stock + on order before anything else); no-action items last
   {cat:"onorder",  label:"Can be kitted with goods on order",           who:"no action needed", ok:true},
 ];
 const md=d=>d?d.slice(5):"";
@@ -1198,18 +1418,49 @@ function noteText(n){
   const X=q=>" ×"+fmt(q);
   const needTxt=it=>it.needs?` (needs ${it.needs.join(" or ")})`:(it.fits?` (shared part, fits ${it.fits} models)`:"");
   switch(n.cat){
-    case "damaged": return `${n.kit}${X(n.sets)} — ${n.parts.filter(p=>p.src===n.dp).map(p=>p.sku).join(", ")} in ${n.dp}`;
+    case "damaged": case "repair": case "samemain": return `${n.kit}${X(n.sets)} — ${n.parts.map(p=>p.sku+" in "+p.src).join(", ")}`;
     case "onorder": { const po=n.parts.filter(p=>!p.stock), st=n.parts.filter(p=>p.stock);
       const nos=[...new Set(po.map(p=>p.src))].join(", ");
       return `${n.kit}${X(n.sets)} — ${st.length?"in stock "+[...new Set(st.map(p=>p.sku))].join(", ")+"; ":""}on order ${[...new Set(po.map(p=>p.sku))].join(", ")} (${nos}, ETA ${n.etaTBD?"not set":md(n.eta)})`; }
-    case "transfer": return `${n.kit}${X(n.sets)} — ${n.parts.map(p=>p.sku+" in "+p.src).join(", ")}`;
     case "sample": return n.items.map(it=>`${it.sku}${X(it.qty)}`).join(" · ");
-    case "short": return (n.onOrder?"on order, bought unpaired: ":"")+n.items.map(it=>`${it.sku}${X(it.qty)}${needTxt(it)}${it.pos?" ["+it.pos.join(", ")+"]":""}`).join(" · ");
+    case "short": case "poshort": return n.items.map(it=>`${it.sku}${X(it.qty)}${needTxt(it)}${it.pos?" ["+it.pos.join(", ")+"]":""}`).join(" · ");
     case "partial": return `${n.po}${n.eta?" (ETA "+md(n.eta)+")":""}: `+n.items.map(it=>`${it.sku} ${fmt(it.unrec)} of ${fmt(it.tot)} open`).join(" · ");
+    case "zloose": return n.items.map(it=>`${it.sku}${X(it.qty)}${needTxt(it)}`).join(" · ");
+    case "trmiss": case "trlate": return trLinesFor(n).map((l,i)=>i===0?l.tail.replace(/^ · /,""):"  ".repeat(l.lv)+l.t+(l.items?": "+l.items:"")+(l.after||"")).join("\n");   // order no. goes in its own column
   }
   return "";
 }
-function noteSkus(n){ return [n.kit, n.po, ...(n.parts||[]).map(p=>p.sku), ...(n.items||[]).map(i=>i.sku)].filter(Boolean); }
+/* transfer note, line by line (level = indent): order / created / per route: header, items, completes */
+function trNoteLines(n){
+  // line 1: order no. + created date; then one line per route: route · n of m pcs not received: items
+  const L=[{lv:0,t:n.doc,b:true,tail:` · created ${n.date} (${n.days} days)`}];
+  n.routes.forEach(rt=>{
+    const it=trItems({sets:rt.sets, rest:rt.rest});
+    L.push({lv:0,t:`${rt.from} → ${rt.to} · ${fmt(rt.tr)} of ${fmt(rt.out)} pcs not received`,route:true, items:it.join(", ")});
+    // the destination side of those sets, as sub-items — the same rows as the Loose parts table above
+    // (shared panels last, so the main bodies / outdoor units read first)
+    if(rt.pairs.length){
+      const ag=new Map(); rt.pairs.forEach(p=>p.parts.forEach(q=>{ if(q.stock) ag.set(q.sku,(ag.get(q.sku)||0)+q.qty); }));
+      const m=state.result&&state.result.mat, ist=s=>{ const x=m&&m.get(s); return x&&x.pl==="IST"?1:0; };
+      const list=[...ag].sort((a,b)=>ist(a[0])-ist(b[0])||a[0].localeCompare(b[0])).map(([s,q])=>`${s} ×${fmt(q)}`);
+      if(list.length) L.push({lv:1,t:`pairs with loose stock in ${rt.to}`, items:list.join(", ")});   // materials in the same mono style as the line above
+    }
+  });
+  return L;
+}
+function trLinesFor(n){ return trNoteLines(n); }
+function trNoteHtml(n){
+  return trLinesFor(n).map(l=>`<div class="trl${l.route?" route":""}${l.lv?" sub":""}">${(l.b||l.route)?`<b>${esc(l.t)}</b>`:esc(l.t)}${l.tail?esc(l.tail):""}${l.items?`: <span class="m">${esc(l.items)}${l.after?esc(l.after):""}</span>`:""}</div>`).join("");
+}
+function noteSkus(n){ return [n.kit, n.po, n.doc, ...(n.parts||[]).map(p=>p.sku), ...(n.items||[]).map(i=>i.sku),
+  ...(n.routes||[]).flatMap(rt=>[...(rt.sets||[]).map(s=>s.kit), ...(rt.rest||[]).map(x=>x.sku), ...(rt.pairs||[]).flatMap(p=>[p.kit,...p.parts.map(q=>q.sku)]),
+    ...(rt.comp||[]).map(c=>c.sku), ...(rt.extra||[]).map(x=>x.sku)])].filter(Boolean); }
+function noteWh(n){
+  if(n.cat==="damaged"||n.cat==="repair"||n.cat==="samemain") return `${n.wh} ↔ ${n.wh2}`;
+  if(n.cat==="partial") return `${n.po} → ${n.wh||"?"}${n.eta?" · ETA "+md(n.eta):""}`;
+  if(n.cat==="trmiss"||n.cat==="trlate") return n.doc;
+  return n.wh;
+}
 function notesFor(pl){
   const r=state.result; if(!r||!r.looseNotes) return [];
   const fc=state.colFilter.code.toLowerCase(), q=state.search.toLowerCase();
@@ -1217,7 +1468,7 @@ function notesFor(pl){
   return NOTE_CATS.map(c=>{
     const mine=list.filter(n=>n.cat===c.cat); if(!mine.length) return null;
     // one line per finding, grouped by warehouse (same order as the columns)
-    const lines=mine.map((n,i)=>({i, sortWh:n.wh||"", wh:n.cat==="transfer"?`${n.wh} ↔ ${n.wh2}`:(n.cat==="partial"?`${n.po} → ${n.wh||"?"}${n.eta?" · ETA "+md(n.eta):""}`:n.wh),
+    const lines=mine.map((n,i)=>({i, sortWh:n.wh||"", wh:noteWh(n), html:(n.cat==="trmiss"||n.cat==="trlate")?trNoteHtml(n):null,
         text:n.cat==="partial"?noteText(n).replace(/^[^:]*: /,""):noteText(n)}))
       .sort((a,b)=>InvEngine.whCmp(a.sortWh,b.sortWh)||a.i-b.i);
     return {...c, lines};
@@ -1265,6 +1516,32 @@ document.getElementById("admin").addEventListener("toggle",pinHeader);
 // the panel floats over the report: a click anywhere outside it closes it
 document.addEventListener("click",e=>{ const a=document.getElementById("admin"); if(a&&a.open&&!a.contains(e.target)) a.open=false; });
 
+
+/* ---------- header tooltips ----------
+   the browser's own title tooltip waits ~1 s and never opens on phones, so header cells that carry an
+   explanation (Z-Intransit, PO columns) get an instant box: anywhere over the cell, or a tap on phones */
+function hdTipEl(){ let t=document.getElementById("hdtip"); if(!t){ t=document.createElement("div"); t.id="hdtip"; document.body.appendChild(t); } return t; }
+function hideHdTip(){ const t=document.getElementById("hdtip"); if(t){ t.style.display="none"; t._for=null; } }
+function showHdTip(th){
+  const t=hdTipEl(); t.textContent=th.dataset.tip; t.style.display="block"; t._for=th;
+  const r=th.getBoundingClientRect(), w=t.offsetWidth, h=t.offsetHeight;
+  const left=Math.max(8, Math.min(r.right-w, window.innerWidth-w-8));          // right-aligned to the cell, kept on screen
+  let top=r.bottom+6; if(top+h>window.innerHeight-8) top=Math.max(8, r.top-h-6);
+  t.style.left=left+"px"; t.style.top=top+"px";
+}
+function bindHeaderTips(root){
+  hideHdTip();
+  root.querySelectorAll("thead th[title]").forEach(th=>{
+    th.dataset.tip=th.getAttribute("title"); th.removeAttribute("title");     // no double tooltip
+    th.addEventListener("mouseenter",()=>showHdTip(th));
+    th.addEventListener("mouseleave",hideHdTip);
+    th.addEventListener("click",e=>{ e.stopPropagation(); const t=document.getElementById("hdtip");
+      if(t && t._for===th && t.style.display==="block") hideHdTip(); else showHdTip(th); });
+  });
+  const wrap=root.querySelector(".tablewrap"); if(wrap) wrap.addEventListener("scroll",hideHdTip,{passive:true});
+}
+document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("thead th[data-tip]")) hideHdTip(); });
+window.addEventListener("resize",hideHdTip);
 
 function visibleModel(){
   const r=state.result; const whs=selWarehouses(); const q=state.search.toLowerCase();
@@ -1322,7 +1599,9 @@ function renderReport(){
   let rows=0;
   let html=`<div class="tablewrap"><table><thead><tr>
     <th ${fz(0,W1)}>SKUCODE</th><th ${fz(W1,W2)}>SKUNAME</th>
-    ${whs.map(w=>`<th class="num">${esc(w)}</th>`).join("")}<th class="num">TOTAL</th>
+    ${whs.map(w=>InvEngine.whGroup(w)==="INTRANSIT"
+        ? `<th class="num trflag" title="${esc(trTitle())}">${esc(w)}${trNeedsFlag()?`<span class="flag">!</span>`:""}</th>`
+        : `<th class="num">${esc(w)}</th>`).join("")}<th class="num">TOTAL</th>
     ${pos.map((o,i)=>`<th class="num po${i?"":" pofirst"}" title="${esc(poTitle(o))}">${esc(o.no)}${o.flag?`<span class="flag">!</span>`:""}<span class="eta">${esc(poHeadLabel(o))}</span></th>`).join("")}
     ${pos.length?`<th class="num posum" title="TOTAL on hand (already net of reservations) + everything still to receive on the orders shown">TOTAL<br>+ on order</th>`:""}</tr>
     <tr class="filterrow">
@@ -1372,7 +1651,7 @@ function renderReport(){
     if(nt.length){
       html+=`<tr class="loose-note"${gA} data-sec="loose"${g.loose.length?hideLoose:""}><td colspan="${whs.length+3+pos.length+(pos.length?1:0)}"><div class="ln">`
         + nt.map(c=>`<div class="c${c.ok?" ok":""}"><b>${esc(c.label)}</b><span class="who">${esc(c.who)}</span><ul>`
-            + c.lines.map(l=>`<li><b>${esc(l.wh)}</b>: <span class="m">${esc(l.text)}</span></li>`).join("")+`</ul></div>`).join("")
+            + c.lines.map(l=>l.html?`<li class="tr">${l.html}</li>`:`<li><b>${esc(l.wh)}</b>: <span class="m">${esc(l.text)}</span></li>`).join("")+`</ul></div>`).join("")
         + `</div></td></tr>`;
     }
   });
@@ -1385,6 +1664,7 @@ function renderReport(){
 
   // stack the filter row directly beneath the sticky header
   pinHeader();
+  bindHeaderTips(el);
 
   el.querySelectorAll("tr.filterrow input").forEach(inp=>{
     inp.addEventListener("input",()=>{ state.colFilter[inp.dataset.cf]=inp.value; state._focus=inp.dataset.cf; renderReport(); });
@@ -1604,7 +1884,7 @@ document.getElementById("btn-export").onclick=async()=>{
   ws.properties.outlineProperties={summaryBelow:false};
   const poV=x=>pos.length?[...pos.map(o=>poOf(x,o.no)), sumSel(x.qty)+poSum(x,pos)]:[];
   const poT=list=>pos.length?[...pos.map(o=>list.reduce((s,x)=>s+poOf(x,o.no),0)), list.reduce((s,x)=>s+sumSel(x.qty)+poSum(x,pos),0)]:[];
-  const hdr=["Product Line","SKUCODE","SKUNAME","Type",...whs,"TOTAL",
+  const hdr=["Product Line","SKUCODE","SKUNAME","Type",...whs.map(w=>w+(InvEngine.whGroup(w)==="INTRANSIT"&&trNeedsFlag()?"  !":"")),"TOTAL",
     ...(pos.length?[...pos.map(o=>o.no+(o.flag?"  !":"")), "TOTAL + on order"]:[])];
   const thin={style:"thin",color:{argb:"FFBFBFBF"}}, border={top:thin,bottom:thin,left:thin,right:thin};
   hdr.forEach((h,i)=>{ const c=ws.getCell(1,i+1); c.value=h; c.font={name:"Arial",bold:true,color:{argb:"FFFFFFFF"},size:10};
@@ -1646,12 +1926,15 @@ document.getElementById("btn-export").onclick=async()=>{
    ["Loose parts = on hand but not kittable in that warehouse (two-way: unmatched indoor units as well as outdoor units / panels). Shown under the part's own product line.",false],
    ["Component rows under a kit show the raw on-hand quantity, not the allocated quantity. Rows and columns with no stock in the selected warehouses are omitted.",false],
    ["Negative on hand is shown in red and is never kitted (counted as 0 in that warehouse). Materials whose only stock is negative are still listed; the product-line row shows how many materials are negative.",false],
+   ...(state.result.trLoaded?[[`Z-Intransit is checked against the open transfer orders (uploaded ${fmtWhen((meta.transfer||{}).uploadedAt)}). An order partly received, or with nothing received after ${state.result.trOverdueDays} days, is flagged for Logistics: `
+     +(trFlagged().map(d=>`${d.no} ${d.fromTxt} → ${d.toTxt}, ${d.status==="partial"?`${Math.round(d.inQ)} of ${Math.round(d.out)} pcs received`:`nothing received after ${d.days} days`}`).join(" · ")||"none")
+     +((state.result.trCheck&&state.result.trCheck.diffs.length)?` · WARNING: ${state.result.trCheck.diffs.length} materials differ between Z-Intransit and the transfer orders`:""),false]]:[]),
    ...((state.result.kitRowsDropped||[]).length?[[`Kit materials appearing in the Stock on Hand export are ignored (${state.result.kitRowsDropped.length} rows: ${state.result.kitRowsDropped.map(d=>d.sku).join(", ")}). Any SKUCODE listed as a kit in the BOM Checking Report is dropped from Stock on Hand regardless of its quantity; kit quantities here are computed from the components.`,false]]:[]),
    ...(pos.length?[
      ["",false],
      ["On order columns = Unreceived Qty of each open purchase order, one column per order, ship-to inside the selected warehouses. Fully received orders are not published.",false],
      ["Each order is kitted on its own: sets = min(component unreceived qty ÷ BOM qty) within that order only — never paired with stock or with another order. Kit rows show sets, component rows show the purchased pieces, loose rows show pieces bought without their partner.",false],
-     ["A \u201c!\u201d after the order number means components were not purchased as complete sets and/or part of the order is already received: "
+     ["A “!” after the order number means components were not purchased as complete sets and/or part of the order is already received: "
        +(pos.filter(o=>o.flag).map(o=>{ const b=[];
            if(o.unmatched.length) b.push("unmatched "+o.unmatched.map(u=>u.sku+" "+Math.round(u.qty)).join(", "));
            if(o.partial.length) b.push("partly received, "+o.partial.length+" of "+o.lines+" lines");
@@ -1672,7 +1955,7 @@ document.querySelectorAll(".dz input[type=file]").forEach(inp=>inp.addEventListe
   try{
     const wb=await readWorkbook(f); const parsed=PARSERS[ds](wb);
     parsed.fileName=f.name; state.local[ds]=parsed;
-    st.className="st ok"; st.textContent=`${f.name} — ${parsed.rows.length} rows${parsed.note?` · analysis date ${parsed.note}`:""}`;
+    st.className="st ok"; st.textContent=`${f.name} — ${parsed.rows.length} rows${parsed.note?` · ${ds==="aging"?"analysis date ":""}${parsed.note}`:""}`;
     document.querySelector(`button[data-pub="${ds}"]`).disabled=false;
   }catch(err){ delete state.local[ds]; st.className="st err"; st.textContent=err.message; document.querySelector(`button[data-pub="${ds}"]`).disabled=true; }
   document.getElementById("btn-preview").disabled=!Object.keys(state.local).length;
