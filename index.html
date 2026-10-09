@@ -946,8 +946,8 @@ function parseReserv(wb){
     out.push([ S(row[need.demand]), Number(row[need.line])||0, S(row[need.sku]), S(row[need.name]),
       Number(row[need.qty])||0, normDate(row[need.req]), normDate(row[need.eta]),
       S(row[need.branch]), S(row[need.sm]), S(row[need.wh]) ]); }
-  if(!out.length) throw new Error("no reservation rows under the header");
-  return {header:RV_HEADER.slice(), rows:out, note:""};
+  // 0 rows is a valid day (nothing reserved): the header was found, so this is the right file — publish it empty
+  return {header:RV_HEADER.slice(), rows:out, note:out.length?"":"no reservations"};
 }
 /* what is published to the Google Sheet: order identity, dates, ship-to and, per item, the two
    quantities only (Unreceived Qty + Total Qty). Supplier, unit price, amounts, FX rate, currency,
@@ -991,7 +991,7 @@ function parsePO(wb){
       out.push([o.hdr["Order No."]||"", o.hdr["Order Date"]||"", o.hdr["Ship to"]||"",
         o.hdr["ETD"]||"", o.hdr["ETA"]||"", o.hdr["Note"]||"", it[0], it[1], it[2], it[3]]); });
   });
-  if(!out.length) throw new Error("every order is fully received (Unreceived Qty = 0) — nothing to publish");
+  // every order fully received = nothing on order: valid, publish 0 rows so yesterday's open orders are cleared
   const note=`${open} open of ${orders.length} orders`+(bad.length?` · line/total qty mismatch: ${bad.join(", ")}`:"");
   return {header:PO_HEADER.slice(), rows:out, note};
 }
@@ -1014,7 +1014,7 @@ function parseTransfer(wb){
     if(!doc||!sku) continue;                                   // the "Total" line has no material
     all.push([doc, normDate(row[c.date]), S(row[c.from]), S(row[c.to]), sku, S(row[c.name]),
       numQ(row[c.out]), numQ(row[c.inn]), numQ(row[c.tr])]); }
-  if(!all.length) throw new Error("no transfer lines under the header");
+  // an export with the header but no order lines (no transfers in the query range) is valid: publish 0 rows
   const trByDoc=new Map(); all.forEach(r=>trByDoc.set(r[0],(trByDoc.get(r[0])||0)+r[8]));
   const out=all.filter(r=>trByDoc.get(r[0])>0);   // only orders with something still in transit
   const open=[...trByDoc.values()].filter(v=>v>0).length;
